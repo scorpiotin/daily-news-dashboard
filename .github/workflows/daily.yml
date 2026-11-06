@@ -1,9 +1,11 @@
 name: 每日抓取并发布
 
-# 每天北京时间 07:30（UTC 23:30）自动抓取、归档并发布到 GitHub Pages
+# 每天北京时间 07:30 / 11:30 / 17:00 三次抓取、归档并发布到 GitHub Pages
 on:
   schedule:
-    - cron: "30 23 * * *"
+    - cron: "30 23 * * *"   # 07:30 北京
+    - cron: "30 3 * * *"    # 11:30 北京
+    - cron: "0 9 * * *"     # 17:00 北京
   workflow_dispatch:
   push:
     branches: [main]
@@ -33,8 +35,9 @@ jobs:
           python-version: "3.12"
 
       # 抓取失败不阻断发布：继续用已有归档构建，页面仍可访问
+      # --merge：当天已有数据时做增量合并，没有则等价于全量抓取
       - name: 抓取最新资讯
-        run: python fetch_news.py || echo "::warning::抓取失败，使用已有归档继续发布"
+        run: python fetch_news.py --merge || echo "::warning::抓取失败，使用已有归档继续发布"
 
       - name: 构建静态站点
         run: python build_site.py
