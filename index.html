@@ -39,6 +39,8 @@
   --ringc:232,56,111; --ringop:.14;
   /* 页脚压暗层：让远山在文字背后淡出，保证小字可读 */
   --veil1:rgba(253,246,238,.55); --veil2:rgba(253,246,238,.96);
+  /* 右侧竖排领域条：整列统一一支浅粉，不按领域配色；选中块走深墨并轻微放大浮起 */
+  --rail-base:#FDF6F9; --rail-bar:#FBE4ED; --rail-line:#F6E8EF;
   /* 字体：拉丁 / 数字走系统几何无衬线，中文走屏显黑体，两者字面高度接近 */
   --font-latin:"SF Pro Text","SF Pro Display",-apple-system,BlinkMacSystemFont,"Segoe UI Variable Text","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
   --font-cn:"PingFang SC","HarmonyOS Sans SC","MiSans","Source Han Sans SC","Noto Sans SC","Microsoft YaHei",sans-serif;
@@ -58,6 +60,8 @@ html[data-theme="dark"]{
   --hill1:#1F1136; --hill2:#29174A; --hill3:#341D5A;
   --ringc:255,140,180; --ringop:.16;
   --veil1:rgba(21,10,36,.55); --veil2:rgba(21,10,36,.96);
+  /* 深色下同一套思路：深底铺一层淡淡的粉，选中仍是亮墨块 */
+  --rail-base:#2A1638; --rail-bar:#4A2440; --rail-line:#3D2350;
 }
 *{box-sizing:border-box}
 html{
@@ -386,35 +390,64 @@ h1.display span+span{margin-top:.06em}
 .filter.rail .f-body{position:static;margin:0}
 .filter.rail .chips{
   position:fixed;right:12px;top:50%;transform:translateY(-50%);
-  z-index:45;display:flex;flex-direction:column;flex-wrap:nowrap;gap:5px;
+  z-index:45;display:flex;flex-direction:column;flex-wrap:nowrap;gap:6px;
   width:44px;overflow:visible;
 }
 .filter.rail .chip{
   width:44px;height:26px;padding:0;flex:none;border-radius:9px;
   font-size:0;justify-content:center;position:relative;overflow:visible;
-  background:color-mix(in srgb,var(--dc,#E8386F) 13%,var(--surface));
+  /* 整列统一一支浅粉，不按领域分色：层级只靠选中态的深墨与放大拉开 */
+  background:color-mix(in srgb,var(--pink) 9%,var(--rail-base));
+  border-color:color-mix(in srgb,var(--pink) 15%,var(--rail-line));
+  transform-origin:100% 50%;
+  transition:transform .17s cubic-bezier(.2,.8,.3,1),background .17s ease,border-color .17s ease,box-shadow .17s ease;
 }
 .filter.rail .chip::before{
   content:'';position:absolute;left:-1px;top:-1px;bottom:-1px;width:6px;
-  background:var(--dc,var(--pink));border-radius:9px 0 0 9px;
+  background:color-mix(in srgb,var(--pink) 34%,var(--rail-bar));
+  border-radius:9px 0 0 9px;
+  transition:background .17s ease;
 }
 .filter.rail .chip::after{
   content:attr(data-short);font-size:0.6875rem;font-weight:700;letter-spacing:0;color:var(--ink2)
 }
 .filter.rail .chip .chip-n{display:none}
-.filter.rail .chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink)}
+/* 悬停：整块朝左微微放大，像从一排里抽出来 */
+.filter.rail .chip:hover{
+  transform:scale(1.06);
+  background:color-mix(in srgb,var(--pink) 16%,var(--rail-base));
+  border-color:color-mix(in srgb,var(--pink) 30%,var(--rail-line));
+}
+.filter.rail .chip:hover::after{color:var(--ink)}
+/* 选中：深墨 + 再放大一点 + 一层浅投影，与上下相邻块彻底分开 */
+.filter.rail .chip[aria-pressed="true"]{
+  background:var(--ink);border-color:var(--ink);
+  transform:scale(1.1);z-index:2;margin-block:2px;
+  box-shadow:0 8px 18px -10px rgba(34,16,70,.62);
+}
+.filter.rail .chip[aria-pressed="true"]:hover{transform:scale(1.12)}
+.filter.rail .chip[aria-pressed="true"]::before{background:var(--ink)}
 .filter.rail .chip[aria-pressed="true"]::after{color:var(--bg)}
+/* 兜底：全部模式下若有领域块被标选中，也走深墨，避免白字落在浅底上看不见 */
+.filter.rail .chips[data-all="1"] .chip:not([data-dom="__all"])[aria-pressed="true"]{
+  background:var(--ink);border-color:var(--ink);color:var(--bg);
+}
 .filter.rail .chip .cfull{
   display:none;position:absolute;right:calc(100% + 8px);top:50%;transform:translateY(-50%);
   white-space:nowrap;padding:5px 9px;border-radius:8px;background:var(--ink);color:var(--bg);
   font-size:0.6875rem;font-weight:700;box-shadow:0 12px 26px -16px rgba(34,16,70,.6);
 }
 .filter.rail .chip:hover .cfull{display:block}
-.filter.rail .chip:hover::after{color:var(--ink)}
 @media (max-height:700px){
   .filter.rail .chips{gap:3px}
   .filter.rail .chip{height:22px}
   .filter.rail .chip::after{font-size:0.625rem}
+}
+/* 再矮一档：19 块整列仍要完整落在视口内，否则最后几块点不到 */
+@media (max-height:580px){
+  .filter.rail .chips{gap:2px}
+  .filter.rail .chip{height:18px}
+  .filter.rail .chip::after{font-size:0.5625rem}
 }
 .f-top{display:flex;align-items:center;gap:10px;margin-bottom:12px}
 .search{position:relative;flex:1;min-width:0;max-width:420px}
@@ -603,7 +636,9 @@ html[data-theme="dark"] table.tbl .down{color:#5FCFA6}
 
 /* 空状态 / 页脚 / 其他 */
 /* 版心与页脚都要压在固定背景之上，否则远山会盖住文字 */
-main{position:relative;z-index:1}
+/* 版心压到 2 层：右侧竖排、搜索方块等 fixed 元素都在 main 里，
+   若与 footer 同为 1 层，滚到页面底部时 footer 会盖住整列，最后几块点不动 */
+main{position:relative;z-index:2}
 .noresult{text-align:center;padding:70px 0;color:var(--ink2)}
 .noresult p{font-size:0.9375rem;margin-bottom:14px}
 footer{
@@ -1887,24 +1922,19 @@ var DOM_SHORT={
   aerospace:'航空',petrochem:'石油',energy:'能源',health:'医疗',edu:'教育',auto:'交通',
   retail:'消费',realestate:'房产',law:'法律',climate:'天气',public_safety:'公共',douyin:'抖音'
 };
-function domColor(id){
-  // 抖音与公共安全的渐变末色相同，公共改用深一档的酒红，右侧相邻两块才分得开
-  if(id==='public_safety')return '#8E1B3A';
-  var a=ART_DEF[id];
-  return a&&a.c?a.c[1]:'#E8386F';
-}
 function renderChips(){
   var day=DATA.day;
   if(!day)return;
   var allOn=!S.feedSel.size;
   $('chips').setAttribute('data-all',allOn?'1':'0');
+  // 竖排模式整列同一支浅粉，不按领域分色；选中态由 aria-pressed 决定深墨
   var html='<button class="chip" data-dom="__all" data-short="全部" aria-pressed="'+allOn+'">全部'+
     '<b class="cfull">全部领域</b></button>';
   html+=day.sections.map(function(s){
     var on=S.feedSel.has(s.id);
     var short=DOM_SHORT[s.id]||s.name.slice(0,2);
     return '<button class="chip" data-dom="'+esc(s.id)+'" data-short="'+esc(short)+'"'+
-      ' style="--dc:'+domColor(s.id)+'" aria-pressed="'+on+'">'+
+      ' aria-pressed="'+on+'">'+
       esc(s.name)+'<span class="chip-n">'+s.items.length+'</span>'+
       '<b class="cfull">'+esc(s.name)+' · '+s.items.length+' 条</b></button>';
   }).join('');
