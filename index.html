@@ -394,11 +394,11 @@ h1.display span+span{margin-top:.06em}
 .filter.rail .chips{
   position:fixed;right:12px;top:50%;transform:translateY(-50%);
   z-index:45;display:flex;flex-direction:column;flex-wrap:nowrap;gap:6px;
-  width:44px;overflow:visible;
+  width:66px;overflow:visible;
 }
 .filter.rail .chip{
-  width:44px;height:26px;padding:0;flex:none;border-radius:9px;
-  font-size:0;justify-content:center;position:relative;overflow:visible;
+  width:66px;height:26px;padding:0 8px 0 12px;flex:none;border-radius:9px;
+  font-size:0;justify-content:flex-start;position:relative;overflow:visible;
   /* 整列统一一支浅粉，不按领域分色：层级只靠选中态的深墨与放大拉开 */
   background:color-mix(in srgb,var(--pink) 9%,var(--rail-base));
   border-color:color-mix(in srgb,var(--pink) 15%,var(--rail-line));
@@ -412,9 +412,16 @@ h1.display span+span{margin-top:.06em}
   transition:background .17s ease;
 }
 .filter.rail .chip::after{
-  content:attr(data-short);font-size:0.6875rem;font-weight:700;letter-spacing:0;color:var(--ink2)
+  content:attr(data-short);order:1;flex:none;white-space:nowrap;
+  font-size:0.6875rem;font-weight:700;letter-spacing:0;color:var(--ink2)
 }
-.filter.rail .chip .chip-n{display:none}
+/* 名称后面跟当域条数：字号更小、颜色更淡一档，读起来是补充信息而不是第二行标题。
+   绝对定位在右侧，不参与 flex 分配，长短名都不会把数字挤出块外 */
+.filter.rail .chip .chip-n{
+  position:absolute;right:7px;top:50%;transform:translateY(-50%);
+  display:block;white-space:nowrap;font-size:0.625rem;font-weight:600;line-height:1;
+  color:var(--ink3);font-variant-numeric:tabular-nums;
+}
 /* 悬停：整块朝左微微放大，像从一排里抽出来 */
 .filter.rail .chip:hover{
   transform:scale(1.06);
@@ -422,6 +429,7 @@ h1.display span+span{margin-top:.06em}
   border-color:color-mix(in srgb,var(--pink) 30%,var(--rail-line));
 }
 .filter.rail .chip:hover::after{color:var(--ink)}
+.filter.rail .chip:hover .chip-n{color:var(--ink2)}
 /* 选中：深墨 + 再放大一点 + 一层浅投影，与上下相邻块彻底分开 */
 .filter.rail .chip[aria-pressed="true"]{
   background:var(--ink);border-color:var(--ink);
@@ -431,6 +439,7 @@ h1.display span+span{margin-top:.06em}
 .filter.rail .chip[aria-pressed="true"]:hover{transform:scale(1.12)}
 .filter.rail .chip[aria-pressed="true"]::before{background:var(--ink)}
 .filter.rail .chip[aria-pressed="true"]::after{color:var(--bg)}
+.filter.rail .chip[aria-pressed="true"] .chip-n{color:var(--bg);opacity:.72}
 /* 兜底：全部模式下若有领域块被标选中，也走深墨，避免白字落在浅底上看不见 */
 .filter.rail .chips[data-all="1"] .chip:not([data-dom="__all"])[aria-pressed="true"]{
   background:var(--ink);border-color:var(--ink);color:var(--bg);
@@ -445,6 +454,7 @@ h1.display span+span{margin-top:.06em}
   .filter.rail .chips{gap:3px}
   .filter.rail .chip{height:22px}
   .filter.rail .chip::after{font-size:0.625rem}
+  .filter.rail .chip .chip-n{font-size:0.5625rem}
 }
 /* 再矮一档：19 块整列仍要完整落在视口内，否则最后几块点不到 */
 @media (max-height:580px){
@@ -1931,8 +1941,11 @@ function renderChips(){
   var allOn=!S.feedSel.size;
   $('chips').setAttribute('data-all',allOn?'1':'0');
   // 竖排模式整列同一支浅粉，不按领域分色；选中态由 aria-pressed 决定深墨
+  // 数量随名称一起给出：竖排块放得下，横排也保持同一个信息结构
+  var totalAll=day.sections.reduce(function(a,s){return a+s.items.length},0);
   var html='<button class="chip" data-dom="__all" data-short="全部" aria-pressed="'+allOn+'">全部'+
-    '<b class="cfull">全部领域</b></button>';
+    '<span class="chip-n">'+totalAll+'</span>'+
+    '<b class="cfull">全部领域 · '+totalAll+' 条</b></button>';
   html+=day.sections.map(function(s){
     var on=S.feedSel.has(s.id);
     var short=DOM_SHORT[s.id]||s.name.slice(0,2);
