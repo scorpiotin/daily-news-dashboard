@@ -37,6 +37,11 @@
   --sky1:rgba(253,242,234,.85);
   --hill1:#FCF4EC; --hill2:#FAE9DD; --hill3:#F6DDCD;
   --ringc:232,56,111; --ringop:.14;
+  /* 页脚压暗层：让远山在文字背后淡出，保证小字可读 */
+  --veil1:rgba(253,246,238,.55); --veil2:rgba(253,246,238,.96);
+  /* 字体：拉丁 / 数字走系统几何无衬线，中文走屏显黑体，两者字面高度接近 */
+  --font-latin:"SF Pro Text","SF Pro Display",-apple-system,BlinkMacSystemFont,"Segoe UI Variable Text","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --font-cn:"PingFang SC","HarmonyOS Sans SC","MiSans","Source Han Sans SC","Noto Sans SC","Microsoft YaHei",sans-serif;
 }
 html[data-theme="dark"]{
   --bg:#150A24; --surface:#22103A; --surface2:#2C1548;
@@ -52,6 +57,7 @@ html[data-theme="dark"]{
   --sky1:rgba(60,30,92,.85);
   --hill1:#1F1136; --hill2:#29174A; --hill3:#341D5A;
   --ringc:255,140,180; --ringop:.16;
+  --veil1:rgba(21,10,36,.55); --veil2:rgba(21,10,36,.96);
 }
 *{box-sizing:border-box}
 html{
@@ -67,9 +73,20 @@ body{
   margin:0;background-color:var(--bg);color:var(--ink);
   background-image:radial-gradient(760px circle at var(--bx) var(--by),var(--glowc),transparent 72%);
   background-attachment:fixed;background-repeat:no-repeat;
-  font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",-apple-system,"Segoe UI",Roboto,sans-serif;
-  font-size:0.9375rem;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden;
+  font-family:var(--font-latin),var(--font-cn);
+  font-size:0.9375rem;line-height:1.7;letter-spacing:.004em;
+  font-kerning:normal;font-variant-ligatures:common-ligatures;
+  text-rendering:optimizeLegibility;
+  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;overflow-x:hidden;
   transition:background-color .2s ease,color .2s ease;
+}
+/* 标题统一：粗、紧、稳，与「今日简报」的字重逻辑一致 */
+h1,h2,h3,h4{letter-spacing:-.022em;font-weight:800;line-height:1.28}
+/* 数字、时间、编号一律等宽，避免逐个跳动 */
+.num,.card-time,.card-foot .t,.stat b,.dc-num,.nc-idx,.nc-count,.sector-no,.chip-n,
+.chip-time b,.updated-at,table.tbl{
+  font-family:var(--font-latin),var(--font-cn);
+  font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1
 }
 h1,h2,h3,p,blockquote,figure{margin:0}
 
@@ -137,6 +154,13 @@ button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
 }
 .iconbtn:hover{background:var(--surface2)}
 .iconbtn svg{width:18px;height:18px;stroke:var(--ink);fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+/* 实时刷新：拉取最新已发布数据，转圈代表正在取，短暂变绿代表已更新 */
+#btnRefresh{position:relative}
+#btnRefresh svg{transition:stroke .2s ease}
+#btnRefresh.loading{pointer-events:none;opacity:.8}
+#btnRefresh.loading svg{animation:spin .85s linear infinite}
+#btnRefresh.done svg{stroke:var(--ok)}
+@keyframes spin{to{transform:rotate(360deg)}}
 .dateSel{
   height:38px;border-radius:12px;border:1px solid var(--line);background:var(--surface);
   color:var(--ink);padding:0 8px;font-size:0.8125rem;font-family:inherit;
@@ -458,10 +482,22 @@ html[data-theme="dark"] table.tbl .down{color:#5FCFA6}
 
 
 /* 空状态 / 页脚 / 其他 */
+/* 版心与页脚都要压在固定背景之上，否则远山会盖住文字 */
+main{position:relative;z-index:1}
 .noresult{text-align:center;padding:70px 0;color:var(--ink2)}
 .noresult p{font-size:0.9375rem;margin-bottom:14px}
-footer{border-top:1px solid var(--line);margin-top:24px;padding:34px 0 60px;font-size:0.7812rem;color:var(--ink2)}
+footer{
+  position:relative;z-index:1;border-top:1px solid var(--line);margin-top:24px;
+  padding:34px 0 60px;font-size:0.7812rem;color:var(--ink2)
+}
+/* 页脚底部铺一层页面底色，远山在这里柔和淡出，小字不再被山脊压住 */
+footer::before{
+  content:"";position:absolute;left:0;right:0;top:-40px;bottom:0;z-index:-1;
+  background:linear-gradient(180deg,transparent 0,var(--veil1) 46%,var(--veil2) 100%);
+  pointer-events:none
+}
 footer p+p{margin-top:8px}
+footer p{max-width:78ch}
 footer b{color:var(--ink)}
 #toTop{
   position:fixed;right:22px;bottom:22px;width:46px;height:46px;border-radius:14px;
@@ -521,6 +557,24 @@ footer b{color:var(--ink)}
 .btn{font-size:0.8438rem;font-weight:700;padding:10px 20px;border-radius:12px;border:1px solid var(--line);background:var(--surface)}
 .btn.primary{background:var(--pink);color:#fff;border-color:transparent}
 
+/* ---------- 字形层级：沿用「今日简报」的逻辑——标题重而紧，正文轻而松 ---------- */
+.hero-tag{font-weight:700;letter-spacing:.08em;font-size:0.75rem}
+.sec-head h2{font-size:1.375rem;letter-spacing:-.028em;line-height:1.25}
+.sec-head p{line-height:1.7;letter-spacing:.004em;max-width:62ch}
+.sector-head h3{font-size:1.1875rem;letter-spacing:-.026em}
+.card h4{font-size:1.0625rem;line-height:1.56;letter-spacing:-.015em}
+.card-sum{line-height:1.78;letter-spacing:.006em}
+.nc-name{font-size:1rem;letter-spacing:-.02em}
+.nc-title{line-height:1.62;letter-spacing:.002em}
+.hero-sub{line-height:1.78}
+footer{line-height:1.85}
+.tag,.kw,.chip,.mini-btn,.more-btn,.btn,.f-toggle{letter-spacing:.008em}
+.card-foot .src{letter-spacing:.004em}
+.dc-poem p{font-size:0.9rem;letter-spacing:.02em}
+/* 顶栏更新时间：让它像一枚仪表读数，而不是普通文字 */
+.chip-time{letter-spacing:.02em}
+.chip-time b{letter-spacing:0}
+
 @media (max-width:1024px){
   #feedList[data-d="3"] .cards{grid-template-columns:repeat(2,minmax(0,1fr))}
   .dy-top{grid-template-columns:repeat(3,minmax(0,1fr))}
@@ -579,10 +633,10 @@ footer b{color:var(--ink)}
   .tb-in{gap:6px}
   .tabs{gap:2px}
   .tab{padding:6px 9px;font-size:0.78125rem}
-  .tb-right{gap:4px}
-  .iconbtn{width:32px;height:32px;border-radius:9px}
-  .iconbtn svg{width:16px;height:16px}
-  .fsbtn{padding:0 5px}
+  .tb-right{gap:3px}
+  .iconbtn{width:30px;height:30px;border-radius:9px}
+  .iconbtn svg{width:15px;height:15px}
+  .fsbtn{padding:0 4px}
   .dateSel{width:80px;font-size:0.6875rem;padding:0 4px}
   .bg-ring{width:48vw;min-width:170px;margin-left:-16vw;top:13vh}
   .bg-hills{height:26vh;min-height:150px}
@@ -632,6 +686,9 @@ footer b{color:var(--ink)}
     </nav>
     <div class="tb-right">
       <div class="chip-time"><span class="dot" id="freshDot" aria-hidden="true"></span>更新 <b id="updatedAt">--:--</b></div>
+      <button class="iconbtn" id="btnRefresh" aria-label="刷新最新资讯" title="刷新最新资讯">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+      </button>
       <select class="dateSel" id="dateSel" aria-label="选择归档日期"></select>
       <button class="iconbtn" id="btnCustom" aria-label="定制首页显示哪些领域" title="定制首页">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h7"/><circle cx="18" cy="12" r="2.2"/></svg>
@@ -1148,10 +1205,13 @@ function showPoem(d){
 }
 
 /* ---------- 数据加载 ---------- */
-function loadScript(src){
+/* bust 传入时间戳时会追加 &v=，绕开浏览器与 CDN 缓存，用于「实时刷新」 */
+function loadScript(src,bust){
   return new Promise(function(res,rej){
     var s=document.createElement('script');
-    s.src=src+(window.__ASSET_QS__||'');
+    var qs=window.__ASSET_QS__||'';
+    if(bust)qs+=(qs?'&':'?')+'v='+bust;
+    s.src=src+qs;
     s.async=true;
     s.onload=function(){res()};
     s.onerror=function(){rej(new Error('load fail: '+src))};
@@ -1178,6 +1238,61 @@ function loadDay(date){
   return loadScript('data/day-'+date+'.js').then(function(){
     if(window.__DAY__&&window.__DAY__.date===date){DATA.day=window.__DAY__;return DATA.day}
     throw new Error('no day data');
+  });
+}
+
+/* ---------- 实时刷新：重新拉取已发布的最新数据（带缓存穿透） ---------- */
+var refreshing=false;
+function refreshLatest(){
+  if(refreshing)return;
+  var btn=$('btnRefresh');
+  var oldAt=(DATA.home&&DATA.home.updatedAt)||'';
+  refreshing=true;
+  if(btn){
+    btn.classList.remove('done');
+    btn.classList.add('loading');
+    btn.setAttribute('aria-busy','true');
+    btn.title='正在获取最新资讯…';
+  }
+  var t=Date.now(), dayChanged=false;
+  var stop=function(){
+    refreshing=false;
+    if(btn){btn.classList.remove('loading');btn.removeAttribute('aria-busy');btn.title='刷新最新资讯'}
+  };
+  loadScript('data/index.js',t).then(function(){
+    var idx=window.__INDEX__||[];
+    if(!idx.length)throw new Error('empty index');
+    var keep=idx.some(function(e){return e.date===S.date});
+    var target=keep?S.date:idx[0].date;
+    dayChanged=target!==S.date;
+    S.latest=idx[0].date;
+    DATE_INDEX=idx;
+    if(dayChanged){S.date=target;DATA.day=null}
+    renderDateOptions();
+    $('dateSel').value=S.date;
+    return loadHome(S.date);
+  }).then(function(){
+    renderHome();
+    if(dayChanged)renderDayCard();
+    if(S.view==='feed'){
+      if(!DATA.day||dayChanged){
+        return loadDay(S.date).then(function(){renderChips();renderFeed()});
+      }
+      renderChips();renderFeed();
+    }
+  }).then(function(){
+    stop();
+    var now=(DATA.home&&DATA.home.updatedAt)||oldAt;
+    if(btn){
+      btn.classList.add('done');
+      setTimeout(function(){btn.classList.remove('done')},1600);
+    }
+    syncURL();
+    if(oldAt&&now&&now!==oldAt)toast('已拉到新内容 · 更新于 '+fmtTime(now));
+    else toast('已是最新 · 最后更新 '+fmtTime(now));
+  }).catch(function(){
+    stop();
+    toast('刷新失败，请稍后重试');
   });
 }
 
@@ -1355,6 +1470,14 @@ function renderHome(){
   var withNews=shown.filter(function(b){return b.item}).length;
   $('heroSub').innerHTML=fmtDateCN(h.date)+' · <b>'+withNews+'</b> 个领域有更新，共 <b>'+shown.reduce(function(a,b){return a+b.count},0)+'</b> 条资讯';
   $('updatedAt').textContent=fmtTime(h.updatedAt);
+  // 3 小时内更新过一次就亮起呼吸点，提示这份数据是新鲜的
+  var dot=$('freshDot');
+  if(dot){
+    var at=h.updatedAt?new Date(h.updatedAt):null;
+    var isFresh=!!at&&!isNaN(at)&&(Date.now()-at.getTime())<3*3600*1000;
+    dot.classList.toggle('fresh',isFresh);
+    dot.title=isFresh?'刚刚更新过':'距上次抓取已超过 3 小时';
+  }
 
   var lc=h.levelCount||{};
   $('stats').innerHTML=
@@ -1862,6 +1985,7 @@ function bind(){
   });
 
   $('btnTheme').addEventListener('click',cycleTheme);
+  $('btnRefresh').addEventListener('click',refreshLatest);
 
   $('btnShare').addEventListener('click',function(){
     syncURL();
@@ -1979,11 +2103,17 @@ function initDust(){
   var W=1,H=1,TARGET=64;
 
   var COLORS=['232,56,111','232,56,111','255,122,77','232,56,111','138,92,246','169,58,99'];
-  var R=250;              // 磁吸半径
+  var R=132;              // 磁吸半径：贴着光标的一小圈，不再铺满半屏
   var SPEED_MAX=18;       // 超过这个每帧位移算「甩动」
+  // 落在这些元素上时视为「压在内容上」，粒子不响应，保持安静
+  var SURFACE='a,button,input,select,textarea,label,.card,.nav-card,.daycard,.stats,.sec-head,.sector-head,.filter,.topbar,.ticker,.sheet,.sheet-mask,.overview,.dy-card,.tbl-wrap,.noresult,footer,#toTop';
   var ps=[];
-  var MX=-9999,MY=-9999,lx=-9999,ly=-9999,vel=0,live=false;
+  var MX=-9999,MY=-9999,lx=-9999,ly=-9999,vel=0,live=false,attract=false;
   var lastAdd=0, rafId=null, rzTimer=null;
+
+  function onSurface(el){
+    try{return !!(el&&el.closest&&el.closest(SURFACE))}catch(e){return false}
+  }
 
   function make(x,y,hx,hy){
     return {
@@ -2021,9 +2151,13 @@ function initDust(){
 
   document.addEventListener('mousemove',function(e){
     MX=e.clientX; MY=e.clientY;
+    var t=e.target||null;
+    // 划到卡片、按钮、顶栏这些内容上就收手，只在真正的空白背景里磁吸
+    attract=!onSurface(t);
     if(!live){live=true; lx=MX; ly=MY;}
   },{passive:true});
-  document.addEventListener('mouseleave',function(){live=false});
+  document.addEventListener('mouseleave',function(){live=false;attract=false});
+  window.addEventListener('blur',function(){live=false;attract=false});
 
   function frame(ts){
     rafId=requestAnimationFrame(frame);
@@ -2031,14 +2165,14 @@ function initDust(){
 
     // 鼠标速度（每帧位移，做一次平滑，避免单帧抖动误判）
     var v=0;
-    if(live&&lx>-999){
+    if(attract&&lx>-999){
       var dxm=MX-lx, dym=MY-ly;
       v=Math.sqrt(dxm*dxm+dym*dym);
-      lx=MX; ly=MY;
     }
+    if(live){lx=MX; ly=MY;}
     vel=vel*0.55+v*0.45;
 
-    var over=vel>SPEED_MAX;
+    var over=attract&&vel>SPEED_MAX;
     var drain=over?(vel-SPEED_MAX)*0.0024:0;
 
     ctx.clearRect(0,0,W,H);
@@ -2048,7 +2182,7 @@ function initDust(){
       var dx=MX-p.x, dy=MY-p.y;
       var d=Math.sqrt(dx*dx+dy*dy)||1;
 
-      if(live&&d<R){
+      if(attract&&d<R){
         // 磁吸：越近引力越强（平方衰减，像被吸住）
         if(d>30){
           var k=1-d/R;
@@ -2079,7 +2213,7 @@ function initDust(){
       if(p.life<=0){ps.splice(i,1);continue}
 
       // 靠近时更亮、略大
-      var near=(live&&d<R)?(1-d/R):0;
+      var near=(attract&&d<R)?(1-d/R):0;
       var tw=0.58+0.42*Math.sin(ts*0.0011+p.ph);
       var al=p.a*tw*(0.44+0.56*p.life)*(0.62+0.86*near);
       if(al>0.94)al=0.94;
