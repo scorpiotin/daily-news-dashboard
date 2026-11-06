@@ -11,3 +11,5 @@ __pycache__/
 Thumbs.db
 
 # 注意：dist/ 是提交的（Netlify / Cloudflare Pages 可直接发布，无需构建）
+.chrome-*/
+_t_*
