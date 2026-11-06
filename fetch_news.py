@@ -346,6 +346,65 @@ def similar(a: str, b: str) -> float:
     return len(ba & bb) / len(ba | bb)
 
 
+# 源站模板没渲染干净时会漏出 ${mypath} / {{xxx}} / <%yyy%> 这类占位符，
+# 这种链接点开就是 404，而且换了个前缀就骗过了按 URL 判重，必须在入口识别
+PLACEHOLDER = re.compile(r"\$\{[^}]*\}|\{\{[^}]*\}\}|<%[^%]*%>")
+
+
+def is_bad_url(u: str) -> bool:
+    return bool(PLACEHOLDER.search(u or ""))
+
+
+def norm_url(u: str) -> str:
+    """把同一篇文章的不同写法收敛成一个 key，用于判重。
+
+    只取「域名 + 路径末两段」作为文章身份：新闻站的栏目前缀经常变
+    （gn / gj / cj 之间互相转载，或用模板占位符顶替），末两段是日期+文章 ID，
+    才是真正唯一的部分。只比 URL 不比较原文，不同站点仍视为不同来源。
+    """
+    u = PLACEHOLDER.sub("_", (u or "").strip())
+    u = re.sub(r"^https?://", "", u, flags=re.I)
+    u = u.split("#")[0].split("?")[0]
+    parts = [p for p in re.split(r"/+", u) if p]
+    if not parts:
+        return ""
+    host = parts[0].lower()
+    tail = "/".join(parts[-2:]) if len(parts) >= 2 else parts[-1]
+    return f"{host}/{tail.lower()}"
+
+
+def same_item(a: dict, b: dict) -> bool:
+    """判定两条资讯是否同一事件：URL 归一后相同，或标题高度相似。"""
+    if a.get("url") and b.get("url") and norm_url(a["url"]) == norm_url(b["url"]):
+        return True
+    ta, tb = norm_title(a.get("title", "")), norm_title(b.get("title", ""))
+    # 太短的标题（比分、快讯、「XX 涨停」之类）词面重合度高但未必是同一件事，
+    # 这类宁可留两条也不合并，只有 URL 相同才认
+    if min(len(ta), len(tb)) < 8:
+        return False
+    return similar(ta, tb) >= 0.72
+
+
+def absorb(dst: dict, src: dict) -> None:
+    """把 src 并入 dst：来源与印证数合并，正文取更全的，坏链接一律换成好链接。"""
+    # 先把 dst 的印证数按来源列表校准，历史数据里同一家媒体的多次出现被算成
+    # 「多源」过，不校准会越滚越虚
+    dst["verifiedCount"] = 1 + len(dst.get("alsoIn") or [])
+    # 同一家媒体在多个栏目重复出现不算交叉核验，只有换了媒体才计入来源列表
+    if src.get("source") and src["source"] != dst.get("source"):
+        also = dst.setdefault("alsoIn", [])
+        if src["source"] not in also:
+            also.append(src["source"])
+        dst["verifiedCount"] = 1 + len(also)
+    if len(src.get("summary") or "") > len(dst.get("summary") or ""):
+        dst["summary"] = src["summary"]
+    if not dst.get("image") and src.get("image"):
+        dst["image"] = src["image"]
+    # 含模板占位符的链接打不开，宁可换成能打开的
+    if is_bad_url(dst.get("url")) and not is_bad_url(src.get("url")):
+        dst["url"] = src["url"]
+
+
 def fetch(url: str, timeout: int = 15) -> bytes:
     req = urllib.request.Request(url, headers={
         "User-Agent": UA,
@@ -854,19 +913,20 @@ def dedupe(items: list[dict]) -> list[dict]:
     seen_urls: set[str] = set()
 
     for it in sorted(items, key=lambda x: (-x["sourceWeight"], -x["score"])):
-        if it["url"] in seen_urls:
+        key = norm_url(it["url"])
+        if key in seen_urls:
             continue
         bucket = buckets.setdefault(it["domain"], [])
-        dup = next((k for k in bucket if similar(k["title"], it["title"]) >= 0.72), None)
+        dup = next((k for k in bucket if same_item(k, it)), None)
         if dup is not None:
-            dup["verifiedCount"] = dup.get("verifiedCount", 1) + 1
+            absorb(dup, it)
             dup["score"] = round(dup["score"] + 1.2, 2)
-            if dup["source"] != it["source"] and it["source"] not in dup.setdefault("alsoIn", []):
-                dup["alsoIn"].append(it["source"])
-            seen_urls.add(it["url"])
+            seen_urls.add(key)
             continue
-        seen_urls.add(it["url"])
+        seen_urls.add(key)
         bucket.append(it)
+
+    return [i for b in buckets.values() for i in b]
 
     return [i for b in buckets.values() for i in b]
 
@@ -945,7 +1005,9 @@ def build_day(items: list[dict], date_str: str) -> dict:
                 "level": i["level"],
                 "region": i["region"],
                 "keywords": i["keywords"],
-                "verifiedCount": i["verifiedCount"],
+                # 印证数一律从 alsoIn 反推，保证「已交叉核验 N 源」不会出现
+                # 数字与来源列表对不上的情况（历史数据里的虚高数字也就此自愈）
+                "verifiedCount": 1 + len(i.get("alsoIn") or []),
                 "alsoIn": i.get("alsoIn", []),
                 "score": i["score"],
                 # 榜单类字段（仅抖音热搜有值）
@@ -990,15 +1052,31 @@ def merge_previous_items(sections: list[dict], day_path: Path) -> int:
             continue
 
         cap = ARCHIVE_CAP_BY_DOMAIN.get(s["id"], 20)
-        seen = {i["url"] for i in s["items"]}
+        seen = {norm_url(i["url"]) for i in s["items"]}
         for prev in old_map.get(s["id"], []):
-            if len(s["items"]) >= cap:
-                print(f"  ! {s['id']} 已达留档上限 {cap} 条，其余旧条目未保留")
-                break
-            if prev["url"] in seen:
+            key = norm_url(prev["url"])
+            if key in seen:
                 continue
+            # 跨批次判重不能只比 URL：同一事件常被同一媒体发在不同栏目（不同路径），
+            # 或被不同站点转载。旧逻辑只按 URL 求并集，于是三批抓下来就攒出三条重复。
+            dup = next((x for x in s["items"] if same_item(x, prev)), None)
+            if dup is not None:
+                absorb(dup, prev)
+                seen.add(key)
+                continue
+            if len(s["items"]) >= cap:
+                # 名额满了不再新增，但仍继续扫完：后面的旧条目可能是已有新闻的另一来源，
+                # 合并不占名额，还能把印证数补全
+                continue
+            if is_bad_url(prev.get("url")):
+                # 整条能留下的唯一价值就是可点的原文链接，坏链接等于废条目
+                print(f"  ! 丢弃含占位符的链接：{prev.get('title', '')[:24]}")
+                seen.add(key)
+                continue
+            # 旧条目直接进 sections 不经过 build_day，印证数要在这里校准一次
+            prev["verifiedCount"] = 1 + len(prev.get("alsoIn") or [])
             s["items"].append(prev)
-            seen.add(prev["url"])
+            seen.add(key)
             added += 1
         # 与单次构建保持同一排序口径：级别 → 时间倒序
         s["items"].sort(key=_sort_key)
@@ -1039,7 +1117,13 @@ def main() -> int:
         print("!! 没有任何条目，终止写入（避免覆盖已有数据）")
         return 1
 
-    merged = finalize(dedupe(raw_items), now)
+    deduped = dedupe(raw_items)
+    # 源站模板没渲染干净的链接点开就是 404，且会绕过按 URL 判重，入库前统一剔除
+    bad_urls = [i for i in deduped if is_bad_url(i["url"])]
+    if bad_urls:
+        print(f"  ! 剔除 {len(bad_urls)} 条含模板占位符的链接（如 {bad_urls[0]['url'][:60]}）")
+        deduped = [i for i in deduped if not is_bad_url(i["url"])]
+    merged = finalize(deduped, now)
     n_p0 = sum(1 for i in merged if i["level"] == "P0")
     n_p1 = sum(1 for i in merged if i["level"] == "P1")
     print(f"  去重后 {len(merged)} 条（P0 {n_p0} / P1 {n_p1} / P2 {len(merged) - n_p0 - n_p1}）")
