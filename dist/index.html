@@ -169,8 +169,23 @@ h1.display span+span{margin-top:.06em}
   font-size:0.7812rem;font-weight:600;display:flex;justify-content:space-between;gap:10px
 }
 .dc-poem{margin-top:16px}
-.dc-poem p{font-size:0.875rem;line-height:1.75;font-family:Georgia,"Songti SC","SimSun",serif;letter-spacing:.01em}
-.dc-poem cite{display:block;margin-top:7px;font-size:0.7188rem;font-style:normal;opacity:.88}
+.dc-poem p{
+  font-size:0.875rem;line-height:1.75;font-family:Georgia,"Songti SC","SimSun",serif;letter-spacing:.01em;
+  /* 固定两行高度：打字与抹去时卡片不跳动 */
+  min-height:3.5em;
+}
+.dc-poem p.typing::after{
+  content:"";display:inline-block;width:1.5px;height:1em;margin-left:2px;
+  vertical-align:-.12em;background:currentColor;opacity:.85;
+  animation:dcCaret 1.05s steps(1) infinite;
+}
+@keyframes dcCaret{0%,52%{opacity:.85}53%,100%{opacity:0}}
+.dc-poem cite{
+  display:block;margin-top:7px;font-size:0.7188rem;font-style:normal;
+  opacity:0;transform:translateY(-2px);
+  transition:opacity .42s ease,transform .42s ease;
+}
+.dc-poem cite.in{opacity:.88;transform:none}
 .dc-next{
   margin-top:14px;font-size:0.7188rem;opacity:.9;padding:4px 10px;border:1px solid rgba(255,255,255,.45);
   border-radius:999px;transition:.15s
@@ -799,75 +814,70 @@ function nextTerm(d){
 }
 
 var POEMS=[
- {t:"冻笔新诗懒写，寒炉美酒时温。",a:"李白《立冬》",s:"winter"},
- {t:"细雨生寒未有霜，庭前木叶半青黄。",a:"仇远《立冬即事》",s:"winter"},
- {t:"霜降水返壑，风落木归山。",a:"白居易《岁晚》",s:"autumn"},
- {t:"落霞与孤鹜齐飞，秋水共长天一色。",a:"王勃《滕王阁序》",s:"autumn"},
- {t:"山明水净夜来霜，数树深红出浅黄。",a:"刘禹锡《秋词》",s:"autumn"},
- {t:"停车坐爱枫林晚，霜叶红于二月花。",a:"杜牧《山行》",s:"autumn"},
- {t:"空山新雨后，天气晚来秋。",a:"王维《山居秋暝》",s:"autumn"},
- {t:"月落乌啼霜满天，江枫渔火对愁眠。",a:"张继《枫桥夜泊》",s:"autumn"},
- {t:"荷尽已无擎雨盖，菊残犹有傲霜枝。",a:"苏轼《赠刘景文》",s:"autumn"},
- {t:"一年好景君须记，最是橙黄橘绿时。",a:"苏轼《赠刘景文》",s:"autumn"},
- {t:"莫听穿林打叶声，何妨吟啸且徐行。",a:"苏轼《定风波》",s:"any"},
- {t:"竹杖芒鞋轻胜马，谁怕？一蓑烟雨任平生。",a:"苏轼《定风波》",s:"any"},
- {t:"落木千山天远大，澄江一道月分明。",a:"黄庭坚《登快阁》",s:"autumn"},
- {t:"万壑有声含晚籁，数峰无语立斜阳。",a:"王禹偁《村行》",s:"autumn"},
- {t:"野旷天低树，江清月近人。",a:"孟浩然《宿建德江》",s:"any"},
- {t:"星垂平野阔，月涌大江流。",a:"杜甫《旅夜书怀》",s:"any"},
- {t:"无边落木萧萧下，不尽长江滚滚来。",a:"杜甫《登高》",s:"autumn"},
- {t:"露从今夜白，月是故乡明。",a:"杜甫《月夜忆舍弟》",s:"autumn"},
- {t:"海上生明月，天涯共此时。",a:"张九龄《望月怀远》",s:"any"},
- {t:"行到水穷处，坐看云起时。",a:"王维《终南别业》",s:"any"},
- {t:"明月松间照，清泉石上流。",a:"王维《山居秋暝》",s:"autumn"},
- {t:"大漠孤烟直，长河落日圆。",a:"王维《使至塞上》",s:"any"},
- {t:"江流天地外，山色有无中。",a:"王维《汉江临泛》",s:"any"},
- {t:"千山鸟飞绝，万径人踪灭。",a:"柳宗元《江雪》",s:"winter"},
- {t:"晚来天欲雪，能饮一杯无？",a:"白居易《问刘十九》",s:"winter"},
- {t:"忽如一夜春风来，千树万树梨花开。",a:"岑参《白雪歌送武判官归京》",s:"winter"},
- {t:"柴门闻犬吠，风雪夜归人。",a:"刘长卿《逢雪宿芙蓉山主人》",s:"winter"},
- {t:"墙角数枝梅，凌寒独自开。",a:"王安石《梅花》",s:"winter"},
- {t:"疏影横斜水清浅，暗香浮动月黄昏。",a:"林逋《山园小梅》",s:"winter"},
- {t:"小楼一夜听春雨，深巷明朝卖杏花。",a:"陆游《临安春雨初霁》",s:"spring"},
- {t:"竹外桃花三两枝，春江水暖鸭先知。",a:"苏轼《惠崇春江晚景》",s:"spring"},
- {t:"天街小雨润如酥，草色遥看近却无。",a:"韩愈《早春呈水部张十八员外》",s:"spring"},
- {t:"等闲识得东风面，万紫千红总是春。",a:"朱熹《春日》",s:"spring"},
- {t:"沾衣欲湿杏花雨，吹面不寒杨柳风。",a:"志南《绝句》",s:"spring"},
- {t:"绿树阴浓夏日长，楼台倒影入池塘。",a:"高骈《山亭夏日》",s:"summer"},
- {t:"接天莲叶无穷碧，映日荷花别样红。",a:"杨万里《晓出净慈寺送林子方》",s:"summer"},
- {t:"稻花香里说丰年，听取蛙声一片。",a:"辛弃疾《西江月》",s:"summer"},
- {t:"水晶帘动微风起，满架蔷薇一院香。",a:"高骈《山亭夏日》",s:"summer"},
- {t:"长风破浪会有时，直挂云帆济沧海。",a:"李白《行路难》",s:"any"},
- {t:"天生我材必有用，千金散尽还复来。",a:"李白《将进酒》",s:"any"},
- {t:"沉舟侧畔千帆过，病树前头万木春。",a:"刘禹锡《酬乐天扬州初逢席上见赠》",s:"any"},
- {t:"纸上得来终觉浅，绝知此事要躬行。",a:"陆游《冬夜读书示子聿》",s:"any"},
- {t:"问渠那得清如许？为有源头活水来。",a:"朱熹《观书有感》",s:"any"},
- {t:"山重水复疑无路，柳暗花明又一村。",a:"陆游《游山西村》",s:"any"},
- {t:"会当凌绝顶，一览众山小。",a:"杜甫《望岳》",s:"any"},
- {t:"人生如逆旅，我亦是行人。",a:"苏轼《临江仙》",s:"any"},
- {t:"此心安处是吾乡。",a:"苏轼《定风波》",s:"any"},
- {t:"路漫漫其修远兮，吾将上下而求索。",a:"屈原《离骚》",s:"any"},
- {t:"天行健，君子以自强不息。",a:"《周易》",s:"any"},
- {t:"知者不惑，仁者不忧，勇者不惧。",a:"《论语》",s:"any"},
- {t:"岁月不居，时节如流。",a:"孔融《论盛孝章书》",s:"any"},
- {t:"寄蜉蝣于天地，渺沧海之一粟。",a:"苏轼《赤壁赋》",s:"any"},
- {t:"惟江上之清风，与山间之明月，耳得之而为声，目遇之而成色。",a:"苏轼《赤壁赋》",s:"any"},
- {t:"冬天来了，春天还会远吗？",a:"雪莱《西风颂》",s:"winter"},
- {t:"这是最好的时代，这是最坏的时代。",a:"狄更斯《双城记》",s:"any"},
- {t:"人可以被毁灭，但不能被打败。",a:"海明威《老人与海》",s:"any"},
- {t:"我们都在阴沟里，但仍有人仰望星空。",a:"王尔德《温德米尔夫人的扇子》",s:"any"},
- {t:"凡是过去，皆为序章。",a:"莎士比亚《暴风雨》",s:"any"},
- {t:"天空没有翅膀的痕迹，但我已飞过。",a:"泰戈尔《飞鸟集》",s:"any"},
- {t:"生如夏花之绚烂，死如秋叶之静美。",a:"泰戈尔《飞鸟集》",s:"summer"},
- {t:"一片树林里分出两条路，而我选择了人迹更少的一条。",a:"弗罗斯特《未选择的路》",s:"any"},
+ {t:"山中何事，松花酿酒，春水煎茶。",a:"张可久《人月圆·山中书事》",s:"any"},
+ {t:"云来山更佳，云去山如画。",a:"张养浩《雁儿落兼得胜令》",s:"any"},
+ {t:"雾失楼台，月迷津渡。",a:"秦观《踏莎行》",s:"any"},
+ {t:"写不成书，只寄得、相思一点。",a:"张炎《解连环·孤雁》",s:"any"},
+ {t:"一往情深深几许，深山夕照深秋雨。",a:"纳兰性德《蝶恋花》",s:"any"},
+ {t:"似此星辰非昨夜，为谁风露立中宵。",a:"黄景仁《绮怀》",s:"any"},
+ {t:"一箫一剑平生意，负尽狂名十五年。",a:"龚自珍《漫感》",s:"any"},
+ {t:"月黑见渔灯，孤光一点萤。",a:"查慎行《舟夜书所见》",s:"any"},
+ {t:"人间有味是清欢。",a:"苏轼《浣溪沙》",s:"any"},
+ {t:"山月不知心里事，水风空落眼前花。",a:"温庭筠《梦江南》",s:"any"},
+ {t:"枕上诗书闲处好，门前风景雨来佳。",a:"李清照《摊破浣溪沙》",s:"any"},
+ {t:"松风吹解带，山月照弹琴。",a:"王维《酬张少府》",s:"any"},
+ {t:"天意怜幽草，人间重晚晴。",a:"李商隐《晚晴》",s:"any"},
+ {t:"云在青天水在瓶。",a:"李翱《赠药山高僧惟俨》",s:"any"},
+ {t:"闭门即是深山，读书随处净土。",a:"陈继儒《小窗幽记》",s:"any"},
+ {t:"闲来写就青山卖，不使人间造孽钱。",a:"唐寅《言志》",s:"any"},
+ {t:"一曲高歌一樽酒，一人独钓一江秋。",a:"王士祯《题秋江独钓图》",s:"any"},
+ {t:"独立小桥风满袖，平林新月人归后。",a:"冯延巳《鹊踏枝》",s:"any"},
+ {t:"落叶满空山，何处寻行迹。",a:"韦应物《寄全椒山中道士》",s:"any"},
+ {t:"寒夜客来茶当酒，竹炉汤沸火初红。",a:"杜耒《寒夜》",s:"any"},
+ {t:"我们准备着深深地领受，那些意想不到的奇迹。",a:"冯至《十四行集》",s:"any"},
+ {t:"你顺手挽住火焰，化作漫天大雪。",a:"北岛《青灯》",s:"any"},
+ {t:"要有最朴素的生活，与最遥远的梦想。",a:"海子《枫》",s:"any"},
+ {t:"我心里有猛虎，在细嗅蔷薇。",a:"萨松 · 余光中译",s:"any"},
  {t:"不要温和地走进那个良夜。",a:"狄兰·托马斯",s:"any"},
- {t:"黑夜给了我黑色的眼睛，我却用它寻找光明。",a:"顾城《一代人》",s:"any"},
- {t:"你站在桥上看风景，看风景人在楼上看你。",a:"卞之琳《断章》",s:"any"},
- {t:"从前的日色变得慢，车，马，邮件都慢。",a:"木心《从前慢》",s:"any"},
- {t:"所谓父女母子一场，只不过意味着，你和他的缘分就是今生今世不断地在目送他的背影渐行渐远。",a:"龙应台《目送》",s:"any"},
- {t:"生活不能等待别人来安排，要自己去争取和奋斗。",a:"路遥《平凡的世界》",s:"any"},
- {t:"世事洞明皆学问，人情练达即文章。",a:"曹雪芹《红楼梦》",s:"any"},
- {t:"不经一番寒彻骨，怎得梅花扑鼻香。",a:"黄檗禅师《上堂开示颂》",s:"winter"}
+ {t:"我们都在阴沟里，但仍有人仰望星空。",a:"王尔德",s:"any"},
+ {t:"天空没有翅膀的痕迹，而我已飞过。",a:"泰戈尔《飞鸟集》",s:"any"},
+ {t:"我达达的马蹄是美丽的错误。",a:"郑愁予《错误》",s:"any"},
+ {t:"死亡不是失去了生命，而是走出了时间。",a:"余华《在细雨中呼喊》",s:"any"},
+ {t:"江流宛转绕芳甸，月照花林皆似霰。",a:"张若虚《春江花月夜》",s:"spring"},
+ {t:"春水碧于天，画船听雨眠。",a:"韦庄《菩萨蛮》",s:"spring"},
+ {t:"听风听雨过清明。",a:"吴文英《风入松》",s:"spring"},
+ {t:"杏花疏影里，吹笛到天明。",a:"陈与义《临江仙》",s:"spring"},
+ {t:"被酒莫惊春睡重，赌书消得泼茶香。",a:"纳兰性德《浣溪沙》",s:"spring"},
+ {t:"白日不到处，青春恰自来。",a:"袁枚《苔》",s:"spring"},
+ {t:"春潮带雨晚来急，野渡无人舟自横。",a:"韦应物《滁州西涧》",s:"spring"},
+ {t:"山路元无雨，空翠湿人衣。",a:"王维《山中》",s:"spring"},
+ {t:"时有落花至，远随流水香。",a:"刘昚虚《阙题》",s:"spring"},
+ {t:"春雨断桥人不度，小舟撑出柳阴来。",a:"徐俯《春游湖》",s:"spring"},
+ {t:"野凫眠岸有闲意，老树着花无丑枝。",a:"梅尧臣《东溪》",s:"spring"},
+ {t:"春色三分，二分尘土，一分流水。",a:"苏轼《水龙吟》",s:"spring"},
+ {t:"微雨过，小荷翻，榴花开欲燃。",a:"苏轼《阮郎归·初夏》",s:"summer"},
+ {t:"叶上初阳干宿雨，水面清圆，一一风荷举。",a:"周邦彦《苏幕遮》",s:"summer"},
+ {t:"日长睡起无情思，闲看儿童捉柳花。",a:"杨万里《闲居初夏午睡起》",s:"summer"},
+ {t:"荷风送香气，竹露滴清响。",a:"孟浩然《夏日南亭怀辛大》",s:"summer"},
+ {t:"清风明月无人管，并作南楼一味凉。",a:"黄庭坚《鄂州南楼书事》",s:"summer"},
+ {t:"松月生夜凉，风泉满清听。",a:"孟浩然《宿业师山房期丁大不至》",s:"summer"},
+ {t:"一川烟草，满城风絮，梅子黄时雨。",a:"贺铸《青玉案》",s:"summer"},
+ {t:"孤村落日残霞，轻烟老树寒鸦。",a:"白朴《天净沙·秋》",s:"autumn"},
+ {t:"留得枯荷听雨声。",a:"李商隐《宿骆氏亭寄怀崔雍崔衮》",s:"autumn"},
+ {t:"雨过一蝉噪，飘萧松桂秋。",a:"杜牧《题扬州禅智寺》",s:"autumn"},
+ {t:"落花无言，人淡如菊。",a:"司空图《二十四诗品》",s:"autumn"},
+ {t:"铺床凉满梧桐月，月在梧桐缺处明。",a:"朱淑真《秋夜》",s:"autumn"},
+ {t:"渡头余落日，墟里上孤烟。",a:"王维《辋川闲居赠裴秀才迪》",s:"autumn"},
+ {t:"空山松子落，幽人应未眠。",a:"韦应物《秋夜寄邱员外》",s:"autumn"},
+ {t:"满载一船秋色，平铺十里湖光。",a:"张孝祥《西江月》",s:"autumn"},
+ {t:"雨中山果落，灯下草虫鸣。",a:"王维《秋夜独坐》",s:"autumn"},
+ {t:"微云淡河汉，疏雨滴梧桐。",a:"孟浩然",s:"autumn"},
+ {t:"鸡声茅店月，人迹板桥霜。",a:"温庭筠《商山早行》",s:"winter"},
+ {t:"旧时月色，算几番照我，梅边吹笛。",a:"姜夔《暗香》",s:"winter"},
+ {t:"林下漏月光，疏疏如残雪。",a:"张岱《陶庵梦忆》",s:"winter"},
+ {t:"雪满山中高士卧，月明林下美人来。",a:"高启《梅花》",s:"winter"},
+ {t:"竹外一枝斜更好。",a:"苏轼《和秦太虚梅花》",s:"winter"},
+ {t:"前村深雪里，昨夜一枝开。",a:"齐己《早梅》",s:"winter"}
 ];
 </script>
 <script>
@@ -1041,14 +1051,65 @@ function renderDayCard(){
   $('dcTermLeft').textContent=nt.left===0?'就是今天':'还有 '+nt.left+' 天';
   showPoem(d);
 }
-function showPoem(d){
-  d=d||(S.date?new Date(S.date+'T00:00:00'):new Date());
+/* 打字机：逐字浮现 → 停留 → 逐字抹去 → 换下一句，循环不止 */
+var POEM_TYPE=86, POEM_ERASE=32, POEM_HOLD=3600, POEM_GAP=520, POEM_FADE=380, POEM_LEAD=360;
+var poemTimer=null;
+
+function poemFor(d){
   var season=seasonOf(d);
   var pool=POEMS.filter(function(p){return p.s===season||p.s==='any'});
   var base=seedOf(d.toDateString());
-  var p=pool[(base+S.poemIdx)%pool.length];
-  $('dcPoem').textContent='「'+p.t+'」';
-  $('dcPoemSrc').textContent='—— '+p.a;
+  return pool[(base+S.poemIdx)%pool.length];
+}
+function stopPoem(){
+  if(poemTimer){clearTimeout(poemTimer);poemTimer=null}
+  var el=$('dcPoem'), src=$('dcPoemSrc');
+  if(el)el.classList.remove('typing');
+  if(src)src.classList.remove('in');
+}
+function showPoem(d){
+  d=d||(S.date?new Date(S.date+'T00:00:00'):new Date());
+  stopPoem();
+  var el=$('dcPoem'), src=$('dcPoemSrc');
+  if(!el||!src)return;
+  var p=poemFor(d);
+  var full='「'+p.t+'」';
+  src.textContent='—— '+p.a;
+  if(reduce){ el.textContent=full; src.classList.add('in'); return; }
+  el.textContent='';
+  el.classList.add('typing');
+
+  var i=0;
+  function type(){
+    if(i>=full.length){
+      src.classList.add('in');
+      poemTimer=setTimeout(erase,POEM_HOLD);
+      return;
+    }
+    i++;
+    el.textContent=full.slice(0,i);
+    var ch=full.charAt(i-1);
+    var pause=(ch==='，'||ch==='。'||ch==='、'||ch==='？')?150:0;
+    poemTimer=setTimeout(type,POEM_TYPE+(i===1?160:0)+pause);
+  }
+  function erase(){
+    // 先收起来源行，再从末尾逐字抹去
+    src.classList.remove('in');
+    poemTimer=setTimeout(function(){
+      var j=full.length;
+      (function del(){
+        if(j<=0){
+          el.classList.remove('typing');
+          poemTimer=setTimeout(function(){ S.poemIdx++; showPoem(d); },POEM_GAP);
+          return;
+        }
+        j--;
+        el.textContent=full.slice(0,j);
+        poemTimer=setTimeout(del,POEM_ERASE);
+      })();
+    },POEM_FADE);
+  }
+  poemTimer=setTimeout(type,POEM_LEAD);
 }
 
 /* ---------- 数据加载 ---------- */
@@ -1872,7 +1933,7 @@ function initPointerFX(){
   initDust();
 }
 
-/* 星尘：在光标外围生成微粒，被吸向光标聚拢；鼠标甩得快时掉队消散 */
+/* 环境微尘：常驻分布在页面各处，鼠标靠近被磁吸成一团；快速甩动则超速损耗，随后缓慢重生 */
 function initDust(){
   var cv=document.createElement('canvas');
   cv.id='fxCanvas';
@@ -1880,80 +1941,141 @@ function initDust(){
   document.body.appendChild(cv);
   var ctx=cv.getContext('2d');
   var dpr=Math.min(window.devicePixelRatio||1,2);
-  var W=1,H=1;
-  function resize(){
+  var W=1,H=1,TARGET=64;
+
+  var COLORS=['232,56,111','232,56,111','255,122,77','232,56,111','138,92,246','169,58,99'];
+  var R=250;              // 磁吸半径
+  var SPEED_MAX=18;       // 超过这个每帧位移算「甩动」
+  var ps=[];
+  var MX=-9999,MY=-9999,lx=-9999,ly=-9999,vel=0,live=false;
+  var lastAdd=0, rafId=null, rzTimer=null;
+
+  function make(x,y,hx,hy){
+    return {
+      x:x, y:y,
+      hx:(hx==null?x:hx), hy:(hy==null?y:hy),
+      vx:0, vy:0,
+      life:1,
+      ph:Math.random()*6.283,
+      rs:.5+Math.random()*1.4,
+      size:1.05+Math.random()*1.9,
+      c:COLORS[(Math.random()*COLORS.length)|0],
+      a:.30+Math.random()*.50
+    };
+  }
+
+  function size(){
     W=window.innerWidth; H=window.innerHeight;
     cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr);
     cv.style.width=W+'px'; cv.style.height=H+'px';
     ctx.setTransform(dpr,0,0,dpr,0,0);
+    // 粒子数随可视面积增减，保持密度一致
+    TARGET=Math.max(36,Math.min(118,Math.round(W*H/14500)));
   }
-  resize();
-  window.addEventListener('resize',resize,{passive:true});
 
-  var COLORS=['232,56,111','255,122,77','138,92,246'];
-  var MAX=60;
-  var ps=[];
-  var MX=-9999, MY=-9999, lx=-9999, ly=-9999, vel=0, live=false, started=false;
+  function seed(){
+    size();
+    ps=[];
+    for(var i=0;i<TARGET;i++) ps.push(make(Math.random()*W,Math.random()*H));
+  }
+  seed();
+  window.addEventListener('resize',function(){
+    if(rzTimer)clearTimeout(rzTimer);
+    rzTimer=setTimeout(seed,220);
+  },{passive:true});
 
   document.addEventListener('mousemove',function(e){
-    MX=e.clientX; MY=e.clientY; live=true;
-    if(!started){started=true; lx=MX; ly=MY; requestAnimationFrame(frame)}
+    MX=e.clientX; MY=e.clientY;
+    if(!live){live=true; lx=MX; ly=MY;}
   },{passive:true});
   document.addEventListener('mouseleave',function(){live=false});
 
-  function spawn(n,dx,dy,v){
-    // 沿运动反方向偏后生成：快速移动时自然形成拖尾，慢速时落在光标周围被吸住
-    var bx=0, by=0;
-    if(v>0.6){bx=-dx/v; by=-dy/v}
-    for(var i=0;i<n;i++){
-      var back=6+Math.random()*44;
-      var side=(Math.random()-.5)*56;
-      ps.push({
-        x:MX+bx*back-by*side,
-        y:MY+by*back+bx*side,
-        vx:(Math.random()-.5)*2.6,
-        vy:(Math.random()-.5)*2.6,
-        life:1,
-        size:1.7+Math.random()*2.2,
-        c:COLORS[(Math.random()*COLORS.length)|0]
-      });
-    }
-  }
+  function frame(ts){
+    rafId=requestAnimationFrame(frame);
+    ts=ts||0;
 
-  function frame(){
+    // 鼠标速度（每帧位移，做一次平滑，避免单帧抖动误判）
+    var v=0;
+    if(live&&lx>-999){
+      var dxm=MX-lx, dym=MY-ly;
+      v=Math.sqrt(dxm*dxm+dym*dym);
+      lx=MX; ly=MY;
+    }
+    vel=vel*0.55+v*0.45;
+
+    var over=vel>SPEED_MAX;
+    var drain=over?(vel-SPEED_MAX)*0.0024:0;
+
     ctx.clearRect(0,0,W,H);
-    var dxm=MX-lx, dym=MY-ly;
-    vel=Math.sqrt(dxm*dxm+dym*dym);
-    lx=MX; ly=MY;
-
-    if(live&&vel>1.2&&ps.length<MAX){
-      spawn(Math.min(4,Math.max(1,Math.round(vel/8))),dxm,dym,vel);
-    }
 
     for(var i=ps.length-1;i>=0;i--){
       var p=ps[i];
       var dx=MX-p.x, dy=MY-p.y;
       var d=Math.sqrt(dx*dx+dy*dy)||1;
-      if(d>26){
-        // 外圈：被吸向光标
-        var g=78/(d+26);
-        p.vx+=dx/d*g; p.vy+=dy/d*g;
+
+      if(live&&d<R){
+        // 磁吸：越近引力越强（平方衰减，像被吸住）
+        if(d>30){
+          var k=1-d/R;
+          var f=k*k*2.6;
+          p.vx+=dx/d*f; p.vy+=dy/d*f;
+        }else{
+          // 贴到光标附近后改为绕行，避免几十颗全部叠在同一个点
+          p.vx+=-dy/d*0.26; p.vy+=dx/d*0.26;
+        }
+        // 甩动时被吸住的粒子来不及跟上，生命流失直至消失
+        if(drain>0)p.life-=drain;
       }else{
-        // 内圈：转为切向绕行，避免坍缩成一个点
-        p.vx+=-dy/d*0.30; p.vy+=dx/d*0.30;
+        // 归位：弹回自己的驻留点
+        p.vx+=(p.hx-p.x)*0.0062;
+        p.vy+=(p.hy-p.y)*0.0062;
+        if(p.life<1){p.life+=0.0072; if(p.life>1)p.life=1}
+        // 驻留点极慢地漫游，避免整片死寂
+        p.hx+=Math.sin(ts*0.00013+p.ph)*0.09;
+        p.hy+=Math.cos(ts*0.00011+p.ph*1.7)*0.09;
+        if(p.hx<-16)p.hx=W+16; else if(p.hx>W+16)p.hx=-16;
+        if(p.hy<-16)p.hy=H+16; else if(p.hy>H+16)p.hy=-16;
       }
-      p.vx*=0.878; p.vy*=0.878;
-      p.x+=p.vx; p.y+=p.vy;
-      // 速度越快，生命流失越快 —— 快速甩动时粒子自然掉队消散
-      p.life-=0.0058+Math.min(0.026,vel*0.0007);
+
+      p.vx*=0.905; p.vy*=0.905;
+      p.x+=p.vx+Math.sin(ts*0.0009*p.rs+p.ph)*0.14;
+      p.y+=p.vy+Math.cos(ts*0.0008*p.rs+p.ph)*0.14;
+
       if(p.life<=0){ps.splice(i,1);continue}
+
+      // 靠近时更亮、略大
+      var near=(live&&d<R)?(1-d/R):0;
+      var tw=0.58+0.42*Math.sin(ts*0.0011+p.ph);
+      var al=p.a*tw*(0.44+0.56*p.life)*(0.62+0.86*near);
+      if(al>0.94)al=0.94;
       ctx.beginPath();
-      ctx.fillStyle='rgba('+p.c+','+(0.28+p.life*0.56).toFixed(3)+')';
-      ctx.arc(p.x,p.y,p.size*p.life+0.3,0,6.2832);
+      ctx.fillStyle='rgba('+p.c+','+al.toFixed(3)+')';
+      ctx.arc(p.x,p.y,p.size*(0.72+0.28*p.life)+near*0.45,0,6.2832);
       ctx.fill();
     }
-    requestAnimationFrame(frame);
+
+    // 损耗的粒子从屏幕边缘慢慢飘回来
+    if(ps.length<TARGET&&ts-lastAdd>100){
+      lastAdd=ts;
+      var side=(Math.random()*4)|0,nx,ny;
+      if(side===0){nx=Math.random()*W; ny=-14}
+      else if(side===1){nx=W+14; ny=Math.random()*H}
+      else if(side===2){nx=Math.random()*W; ny=H+14}
+      else{nx=-14; ny=Math.random()*H}
+      var np=make(nx,ny,Math.random()*W,Math.random()*H);
+      np.life=0.12;
+      ps.push(np);
+    }
   }
+
+  rafId=requestAnimationFrame(frame);
+  document.addEventListener('visibilitychange',function(){
+    if(document.hidden){
+      if(rafId){cancelAnimationFrame(rafId); rafId=null}
+    }else if(!rafId){
+      rafId=requestAnimationFrame(frame);
+    }
+  });
 }
 
 /* ---------- 启动 ---------- */
