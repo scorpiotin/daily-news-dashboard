@@ -217,13 +217,26 @@ window.__DAY__ = {
 选中的领域按用户顺序写入 `domains` URL 参数与 localStorage，`S.domains` 的迭代顺序即首页卡片渲染顺序。
 「恢复默认顺序」按数据源原始顺序重排，不改变当前勾选状态。
 
-**指针互动**（仅在 `hover:hover` + `pointer:fine` + 非 reduced-motion 时启用）：
+**背景风景层**：`.bg-scene` 固定铺满视口（`position:fixed; z-index:0; pointer-events:none`），
+由三部分组成——顶部暮色天空渐变、右侧土星光环（一轮描边圆 + 两道倾斜椭圆）、底部三层远山 SVG。
+山脊用 `--hill1/2/3` 变量随主题切换：浅色主题是暖赭单色阶，深色主题是暗紫单色阶。
+卡片本身是实色，会盖住图案，所以风景只在版心两侧、卡片间隙和页脚露出来，形成"隔着一层纸看见淡风景"的层次。
+
+**指针互动**（仅在 `hover:hover` + `pointer:fine` + 宽度 ≥768px + 非 reduced-motion 时启用）：
 
 - 背景柔光：`--bx/--by` 由 rAF 插值跟随光标，`body` 的 `background-image` 是一层 760px 径向渐变
 - 空白处点击涟漪：`pointerdown` 时排除卡片、链接、表格等交互元素后才生成 `.bg-ripple`
-- 磁吸按钮：顶部 `.iconbtn` / `.tab` 在 54px 半径内按距离平方衰减位移，最大 4px
+- 环境微尘：全屏 `<canvas id="fxCanvas">`，按可视面积铺 36–118 颗微尘（`W*H/14500`）缓慢漂移。
+  光标进入 250px 半径后按距离平方衰减吸引，贴近到 30px 内转为切向绕行，聚成一团而不是坍缩成点。
+  甩动超过 18px/帧时被吸住的粒子生命加速流失而消散，从屏幕边缘缓慢飘回、数量自愈。
+  `pointer-events:none` 不拦截交互，`visibilitychange` 时停帧，DPR 上限 2。
 - 卡片抬升：`.card` / `.nav-card` 悬停上浮 2px + 投影，`active` 时按压回弹
-- 移动端（`hover:none` 或 ≤720px）与 `prefers-reduced-motion` 下整体关闭
+- 移动端（`hover:none` 或宽度 <768px）与 `prefers-reduced-motion` 下整体关闭
+
+**今日签打字机**：逐字浮现 86ms/字（逗号句号处停 150ms）→ 停留 3.6s → 逐字抹去 32ms/字 → 空格 520ms 后换下一句，无限循环。
+诗句容器固定 `min-height:3.5em`（两行），打字与抹去时卡片高度不变、不跳动；光标用 `.typing::after` 闪烁竖线。
+来源署名 `cite` 在打完时淡入、抹去前淡出。`prefers-reduced-motion` 下直接显示全文。
+诗库 64 条按季节标注（`s` 字段），当日只取同季 + `any`，用日期做种子决定起始位置。
 
 **坐标方式**：全部状态写进 URL（`history.replaceState`），复制链接即可还原视图。
 
