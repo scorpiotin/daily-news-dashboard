@@ -132,18 +132,39 @@ button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
   backdrop-filter:saturate(1.4) blur(10px);border-bottom:1px solid var(--line);
   transition:background-color .28s ease,border-color .28s ease,box-shadow .28s ease,backdrop-filter .28s ease;
 }
-/* 下拉后变通透：能看见下方内容透上来，同时靠 4px 轻虚化保住顶栏文字的可读性 */
+/* 下拉后：整条栏完全透明，只留控件自己的半透明胶囊，内容从缝隙里透出来 */
 .topbar.scrolled{
-  background:color-mix(in srgb,var(--bg) 62%,transparent);
-  border-bottom-color:color-mix(in srgb,var(--line2) 62%,transparent);
-  backdrop-filter:saturate(1.2) blur(4px);
-  box-shadow:0 10px 26px -22px rgba(34,16,70,.5);
+  background:transparent;
+  border-bottom-color:transparent;
+  backdrop-filter:none;
+  box-shadow:none;
+}
+.topbar.scrolled .logo,
+.topbar.scrolled .tab:not([aria-current="page"]),
+.topbar.scrolled .chip-time,
+.topbar.scrolled .dateSel,
+.topbar.scrolled .iconbtn,
+.topbar.scrolled .fsbtn{
+  background:color-mix(in srgb,var(--surface2) 90%,transparent);
+  border-color:rgba(34,16,70,.10);
+  box-shadow:0 1px 2px rgba(34,16,70,.06),0 12px 24px -16px rgba(34,16,70,.55);
+  backdrop-filter:blur(12px) saturate(1.3);
+  -webkit-backdrop-filter:blur(12px) saturate(1.3);
 }
 .tb-in{display:flex;align-items:center;gap:18px;height:64px;max-width:1240px;margin:0 auto;padding:0 24px}
-.logo{display:flex;align-items:center;gap:9px;font-weight:800;letter-spacing:-.01em;flex:none}
+.logo{
+  display:flex;align-items:center;gap:9px;font-weight:800;letter-spacing:-.01em;flex:none;
+  padding:6px 14px 6px 6px;margin:-6px -10px -6px -6px;border-radius:999px;
+  border:1px solid transparent;
+  transition:background-color .28s ease,border-color .28s ease;
+}
 .logo i{width:26px;height:26px;border-radius:9px;background:var(--grad);display:block}
 .tabs{display:flex;gap:4px;flex:none}
-.tab{padding:8px 14px;border-radius:999px;font-size:0.875rem;color:var(--ink2);font-weight:600;transition:.15s}
+.tab{
+  padding:7px 13px;border-radius:999px;font-size:0.875rem;color:var(--ink2);font-weight:600;
+  border:1px solid transparent;
+  transition:background-color .22s ease,border-color .22s ease,color .15s ease;
+}
 .tab[aria-current="page"]{background:var(--ink);color:var(--bg)}
 .tab:hover{color:var(--ink)}
 .tb-right{margin-left:auto;display:flex;align-items:center;gap:8px;flex:none}
@@ -307,6 +328,23 @@ h1.display span+span{margin-top:.06em}
 
 /* 筛选栏 */
 .filter{position:sticky;top:64px;z-index:30;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);padding:14px 0 12px;margin-bottom:22px}
+/* 与顶栏同一套逻辑：下拉后栏体透明，搜索框、密度、折叠、领域标签各自成胶囊 */
+.filter.scrolled{background:transparent;border-bottom-color:transparent;backdrop-filter:none}
+.filter.scrolled .search input,
+.filter.scrolled .dens,
+.filter.scrolled .f-toggle,
+.filter.scrolled .chip{
+  background:color-mix(in srgb,var(--surface2) 90%,transparent);
+  border-color:rgba(34,16,70,.10);
+  box-shadow:0 1px 2px rgba(34,16,70,.06),0 12px 24px -16px rgba(34,16,70,.55);
+  backdrop-filter:blur(12px) saturate(1.3);
+  -webkit-backdrop-filter:blur(12px) saturate(1.3);
+}
+.filter.scrolled .chip[aria-pressed="true"],
+.filter.scrolled .chips[data-all="1"] .chip[data-dom="__all"][aria-pressed="true"]{
+  background:var(--ink);color:var(--bg);
+  border-color:color-mix(in srgb,var(--ink) 88%,transparent);
+}
 .filter.collapsed .f-body{display:none}
 .f-top{display:flex;align-items:center;gap:10px;margin-bottom:12px}
 .search{position:relative;flex:1;min-width:0;max-width:420px}
@@ -518,21 +556,12 @@ footer b{color:var(--ink)}
 #toTop.show{display:flex}
 #toTop svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
 
-/* 上下边缘淡出：内容滑到视口边缘时融进背景，不留生硬截断 */
+/* 底边淡出：内容滑到底部时融进背景，不留生硬截断 */
 .edge-fade{
   position:fixed;left:0;right:0;pointer-events:none;z-index:29;
   opacity:0;transition:opacity .42s ease;
 }
 .edge-fade.on{opacity:1}
-.edge-fade.top{
-  /* 从顶栏下沿开始，避免遮住顶栏本体的通透感 */
-  top:64px;height:56px;
-  background:linear-gradient(180deg,
-    color-mix(in srgb,var(--bg) 76%,transparent) 0%,
-    color-mix(in srgb,var(--bg) 44%,transparent) 48%,
-    color-mix(in srgb,var(--bg) 14%,transparent) 78%,
-    transparent 100%);
-}
 .edge-fade.bottom{
   bottom:0;height:66px;
   background:linear-gradient(0deg,
@@ -542,7 +571,6 @@ footer b{color:var(--ink)}
     transparent 100%);
 }
 @media (max-width:720px){
-  .edge-fade.top{top:56px;height:46px}
   .edge-fade.bottom{height:54px}
 }
 @media (prefers-reduced-motion:reduce){
@@ -828,7 +856,6 @@ footer{line-height:1.85}
     </section>
 
   </div>
-  <div class="edge-fade top" id="edgeTop" aria-hidden="true"></div>
   <div class="edge-fade bottom" id="edgeBot" aria-hidden="true"></div>
 </main>
 
@@ -2096,7 +2123,7 @@ function bind(){
   });
 
   var toTop=$('toTop');
-  var edgeTop=$('edgeTop'), edgeBot=$('edgeBot'), edgeTick=null;
+  var edgeBot=$('edgeBot'), edgeTick=null;
   var topbarEl=document.querySelector('.topbar');
   function syncEdges(){
     clearTimeout(edgeTick); edgeTick=null;
@@ -2104,7 +2131,8 @@ function bind(){
     var max=(document.documentElement.scrollHeight||0)-window.innerHeight;
     toTop.classList.toggle('show',y>600);
     if(topbarEl)topbarEl.classList.toggle('scrolled',y>8);
-    if(edgeTop)edgeTop.classList.toggle('on',y>4);
+    var filterEl=$('filter');
+    if(filterEl)filterEl.classList.toggle('scrolled',y>8);
     if(edgeBot)edgeBot.classList.toggle('on',max-y>4);
   }
   window.addEventListener('scroll',function(){
