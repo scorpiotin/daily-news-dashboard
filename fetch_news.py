@@ -82,6 +82,13 @@ DOMAIN_IDS = [d[0] for d in DOMAINS]
 MAX_BY_DOMAIN = {d: 10 for d in DOMAIN_IDS}
 MAX_BY_DOMAIN["petrochem"] = 10
 MAX_BY_DOMAIN["douyin"] = 20          # 榜单性质，取前 20 条
+
+# 当天全量留档上限：远高于单次抓取上限（10 / 20），
+# 保证一天内三次抓取（含手动触发）的条目都留在当天文件里，不被新批次挤掉。
+# 60 约等于 6 个批次，正常一天用不到；抖音榜单量大，给 100。
+ARCHIVE_CAP_BY_DOMAIN = {d: 60 for d in DOMAIN_IDS}
+ARCHIVE_CAP_BY_DOMAIN["douyin"] = 100
+
 SPECIAL_DOMAINS = {"douyin"}          # 不走关键词分类，由专用抓取器产出
 
 # --------------------------------------------------------------------------
@@ -936,6 +943,49 @@ def build_day(items: list[dict], date_str: str) -> dict:
     return sections
 
 
+def merge_previous_items(sections: list[dict], day_path: Path) -> int:
+    """当天全量留档：把当天已归档、本次未抓到的条目全部补回来。
+
+    与旧行为（名额优先给新条目、旧条目只填剩余空位）不同，这里按 URL 求并集，
+    上限用 ARCHIVE_CAP_BY_DOMAIN，远高于单次抓取上限，
+    因此一天内多批次抓到的条目都会留在当天文件里，不会被新批次挤掉。
+    """
+    total_now = sum(len(s["items"]) for s in sections)
+    if not day_path.exists():
+        return total_now
+    try:
+        old_txt = day_path.read_text(encoding="utf-8")
+        m = re.search(r"window\.__DAY__\s*=\s*(\{.*\});?\s*$", old_txt, re.S)
+        if not m:
+            return total_now
+        old = json.loads(m.group(1))
+        old_map = {s["id"]: s.get("items", []) for s in old.get("sections", [])}
+    except Exception as exc:  # noqa: BLE001
+        print(f"  ! 读取旧归档失败（忽略，按本次结果写入）: {exc}")
+        return total_now
+
+    added = 0
+    for s in sections:
+        cap = ARCHIVE_CAP_BY_DOMAIN.get(s["id"], 60)
+        seen = {i["url"] for i in s["items"]}
+        for prev in old_map.get(s["id"], []):
+            if len(s["items"]) >= cap:
+                print(f"  ! {s['id']} 已达留档上限 {cap} 条，其余旧条目未保留")
+                break
+            if prev["url"] in seen:
+                continue
+            s["items"].append(prev)
+            seen.add(prev["url"])
+            added += 1
+        # 与单次构建保持同一排序口径：级别 → 印证数 → 时间倒序
+        s["items"].sort(key=_sort_key)
+        s["empty"] = len(s["items"]) == 0
+
+    total = sum(len(s["items"]) for s in sections)
+    print(f"  当天留档：本次抓到 {total - added} 条，补回当天已归档 {added} 条，合计 {total} 条")
+    return total
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--merge", action="store_true", help="增量合并当天已有数据")
@@ -1018,30 +1068,12 @@ def main() -> int:
         "level": i["level"],
     } for i in breaking[:6]]
 
-    # 增量合并：把当天已有但本次未抓到的条目补回来
-    day_path = DATA_DIR / f"day-{today}.js"
-    if args.merge and day_path.exists():
-        try:
-            old_txt = day_path.read_text(encoding="utf-8")
-            m = re.search(r"window\.__DAY__\s*=\s*(\{.*\});?\s*$", old_txt, re.S)
-            if m:
-                old = json.loads(m.group(1))
-                old_map = {s["id"]: s["items"] for s in old.get("sections", [])}
-                for s in sections:
-                    existing_urls = {i["url"] for i in s["items"]}
-                    cap = MAX_BY_DOMAIN.get(s["id"], MAX_PER_DOMAIN)
-                    for prev in old_map.get(s["id"], []):
-                        if prev["url"] not in existing_urls and len(s["items"]) < cap:
-                            s["items"].append(prev)
-                    s["items"].sort(key=lambda x: (
-                        LEVEL_ORDER.get(x.get("level", "P2"), 2),
-                        -x.get("verifiedCount", 1),
-                    ))
-                    s["empty"] = len(s["items"]) == 0
-                total = sum(len(s["items"]) for s in sections)
-                print(f"  增量合并完成，共 {total} 条")
-        except Exception as exc:  # noqa: BLE001
-            print(f"  ! 增量合并失败（忽略）: {exc}")
+    # 当天全量留档：当天已归档的条目全部保留，不再按单次名额挤掉旧条目
+    if args.merge:
+        day_path = DATA_DIR / f"day-{today}.js"
+        total = merge_previous_items(sections, day_path)
+    else:
+        total = sum(len(s["items"]) for s in sections)
 
     level_count = {"P0": 0, "P1": 0, "P2": 0}
     for s in sections:
