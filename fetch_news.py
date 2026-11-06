@@ -83,11 +83,11 @@ MAX_BY_DOMAIN = {d: 10 for d in DOMAIN_IDS}
 MAX_BY_DOMAIN["petrochem"] = 10
 MAX_BY_DOMAIN["douyin"] = 20          # 榜单性质，取前 20 条
 
-# 当天全量留档上限：远高于单次抓取上限（10 / 20），
-# 保证一天内三次抓取（含手动触发）的条目都留在当天文件里，不被新批次挤掉。
-# 60 约等于 6 个批次，正常一天用不到。
-# 抖音不参与留档（见 SPECIAL_DOMAINS），这里保留占位但不会生效。
-ARCHIVE_CAP_BY_DOMAIN = {d: 60 for d in DOMAIN_IDS}
+# 当天全量留档上限：每个领域最多保留 20 条。
+# 一天三次抓取会按「级别 → 时间」择优合并，超过 20 条的尾部自动裁掉，
+# 既保证当天有多批次抓取的余量，又不让单日文件无限膨胀。
+# 抖音是榜单（见 SPECIAL_DOMAINS），取实时前 20，不参与历史补档。
+ARCHIVE_CAP_BY_DOMAIN = {d: 20 for d in DOMAIN_IDS}
 ARCHIVE_CAP_BY_DOMAIN["douyin"] = 20
 
 SPECIAL_DOMAINS = {"douyin"}          # 不走关键词分类，由专用抓取器产出
@@ -989,7 +989,7 @@ def merge_previous_items(sections: list[dict], day_path: Path) -> int:
             s["empty"] = len(s["items"]) == 0
             continue
 
-        cap = ARCHIVE_CAP_BY_DOMAIN.get(s["id"], 60)
+        cap = ARCHIVE_CAP_BY_DOMAIN.get(s["id"], 20)
         seen = {i["url"] for i in s["items"]}
         for prev in old_map.get(s["id"], []):
             if len(s["items"]) >= cap:

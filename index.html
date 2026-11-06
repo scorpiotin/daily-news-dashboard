@@ -169,8 +169,11 @@ button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
   border:1px solid transparent;
   transition:background-color .22s ease,border-color .22s ease,color .15s ease;
 }
-.tab[aria-current="page"]{background:var(--ink);color:var(--bg)}
-.tab:hover{color:var(--ink)}
+/* 悬停只作用于未选中的按钮：否则鼠标停在当前页签上时，文字会被刷成页签底色，
+   深墨底 + 深墨字完全看不见（悬停与 aria-current 同特异性，必须显式排除） */
+.tab:hover:not([aria-current="page"]){color:var(--ink)}
+.tab[aria-current="page"],
+.tab[aria-current="page"]:hover{background:var(--ink);color:var(--bg)}
 .tb-right{margin-left:auto;display:flex;align-items:center;gap:8px;flex:none}
 .chip-time{
   font-size:0.7812rem;color:var(--ink2);display:flex;align-items:center;gap:6px;
