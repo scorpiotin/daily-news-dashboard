@@ -40,7 +40,7 @@
   /* 页脚压暗层：让远山在文字背后淡出，保证小字可读 */
   --veil1:rgba(253,246,238,.55); --veil2:rgba(253,246,238,.96);
   /* 右侧竖排领域条：整列统一一支浅粉，不按领域配色；选中块走深墨并轻微放大浮起 */
-  --rail-base:#FDF6F9; --rail-bar:#FBE4ED; --rail-line:#F6E8EF;
+  --rail-base:#FBF0E6; --rail-bar:#E9BD9D; --rail-line:#F2E3D3; --rail-hover:#F6E5D3;
   /* 字体：拉丁 / 数字走系统几何无衬线，中文走屏显黑体，两者字面高度接近 */
   --font-latin:"SF Pro Text","SF Pro Display",-apple-system,BlinkMacSystemFont,"Segoe UI Variable Text","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
   --font-cn:"PingFang SC","HarmonyOS Sans SC","MiSans","Source Han Sans SC","Noto Sans SC","Microsoft YaHei",sans-serif;
@@ -61,7 +61,7 @@ html[data-theme="dark"]{
   --ringc:255,140,180; --ringop:.16;
   --veil1:rgba(21,10,36,.55); --veil2:rgba(21,10,36,.96);
   /* 深色下同一套思路：深底铺一层淡淡的粉，选中仍是亮墨块 */
-  --rail-base:#2A1638; --rail-bar:#4A2440; --rail-line:#3D2350;
+  --rail-base:#2C1F2E; --rail-bar:#7A5A44; --rail-line:#3E2F3A; --rail-hover:#3C2B33;
 }
 *{box-sizing:border-box}
 html{
@@ -399,15 +399,15 @@ h1.display span+span{margin-top:.06em}
 .filter.rail .chip{
   width:66px;height:26px;padding:0 8px 0 12px;flex:none;border-radius:9px;
   font-size:0;justify-content:flex-start;position:relative;overflow:visible;
-  /* 整列统一一支浅粉，不按领域分色：层级只靠选中态的深墨与放大拉开 */
-  background:color-mix(in srgb,var(--pink) 9%,var(--rail-base));
-  border-color:color-mix(in srgb,var(--pink) 15%,var(--rail-line));
+  /* 整列统一一支暖杏，取页面背景的色族，不按领域分色：层级只靠选中态的深墨与放大拉开 */
+  background:var(--rail-base);
+  border-color:var(--rail-line);
   transform-origin:100% 50%;
   transition:transform .17s cubic-bezier(.2,.8,.3,1),background .17s ease,border-color .17s ease,box-shadow .17s ease;
 }
 .filter.rail .chip::before{
   content:'';position:absolute;left:-1px;top:-1px;bottom:-1px;width:6px;
-  background:color-mix(in srgb,var(--pink) 34%,var(--rail-bar));
+  background:var(--rail-bar);
   border-radius:9px 0 0 9px;
   transition:background .17s ease;
 }
@@ -425,8 +425,8 @@ h1.display span+span{margin-top:.06em}
 /* 悬停：整块朝左微微放大，像从一排里抽出来 */
 .filter.rail .chip:hover{
   transform:scale(1.06);
-  background:color-mix(in srgb,var(--pink) 16%,var(--rail-base));
-  border-color:color-mix(in srgb,var(--pink) 30%,var(--rail-line));
+  background:var(--rail-hover);
+  border-color:color-mix(in srgb,var(--rail-bar) 58%,var(--rail-line));
 }
 .filter.rail .chip:hover::after{color:var(--ink)}
 .filter.rail .chip:hover .chip-n{color:var(--ink2)}
