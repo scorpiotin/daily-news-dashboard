@@ -130,6 +130,14 @@ button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
 .topbar{
   position:sticky;top:0;z-index:40;background:color-mix(in srgb,var(--bg) 88%,transparent);
   backdrop-filter:saturate(1.4) blur(10px);border-bottom:1px solid var(--line);
+  transition:background-color .28s ease,border-color .28s ease,box-shadow .28s ease,backdrop-filter .28s ease;
+}
+/* 下拉后变通透：能看见下方内容透上来，同时靠 4px 轻虚化保住顶栏文字的可读性 */
+.topbar.scrolled{
+  background:color-mix(in srgb,var(--bg) 62%,transparent);
+  border-bottom-color:color-mix(in srgb,var(--line2) 62%,transparent);
+  backdrop-filter:saturate(1.2) blur(4px);
+  box-shadow:0 10px 26px -22px rgba(34,16,70,.5);
 }
 .tb-in{display:flex;align-items:center;gap:18px;height:64px;max-width:1240px;margin:0 auto;padding:0 24px}
 .logo{display:flex;align-items:center;gap:9px;font-weight:800;letter-spacing:-.01em;flex:none}
@@ -204,13 +212,13 @@ h1.display span+span{margin-top:.06em}
 }
 .daycard::after{content:"";position:absolute;right:-40px;top:-40px;width:150px;height:150px;border-radius:50%;border:1.5px solid rgba(255,255,255,.28)}
 .dc-top{display:flex;align-items:baseline;gap:12px}
-.dc-num{font-size:3.25rem;font-weight:900;line-height:.94;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
-.dc-week{font-size:0.875rem;font-weight:600;opacity:.94}
-.dc-meta{margin-top:14px;display:flex;flex-wrap:wrap;gap:6px 12px;font-size:0.7812rem;opacity:.95}
+.dc-num{font-size:3.375rem;font-weight:900;line-height:.94;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.dc-week{font-size:0.9375rem;font-weight:700;opacity:.94;letter-spacing:.01em}
+.dc-meta{margin-top:14px;display:flex;flex-wrap:wrap;gap:6px 12px;font-size:0.875rem;font-weight:600;opacity:.96}
 .dc-meta span{display:inline-flex;align-items:center;gap:5px}
 .dc-term{
   margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.28);
-  font-size:0.7812rem;font-weight:600;display:flex;justify-content:space-between;gap:10px
+  font-size:0.875rem;font-weight:700;display:flex;justify-content:space-between;gap:10px
 }
 .dc-poem{margin-top:16px}
 .dc-poem p{
@@ -517,16 +525,16 @@ footer b{color:var(--ink)}
 }
 .edge-fade.on{opacity:1}
 .edge-fade.top{
-  top:0;height:168px;
+  /* 从顶栏下沿开始，避免遮住顶栏本体的通透感 */
+  top:64px;height:56px;
   background:linear-gradient(180deg,
-    color-mix(in srgb,var(--bg) 97%,transparent) 0%,
-    color-mix(in srgb,var(--bg) 97%,transparent) 38%,
-    color-mix(in srgb,var(--bg) 68%,transparent) 62%,
-    color-mix(in srgb,var(--bg) 26%,transparent) 82%,
+    color-mix(in srgb,var(--bg) 76%,transparent) 0%,
+    color-mix(in srgb,var(--bg) 44%,transparent) 48%,
+    color-mix(in srgb,var(--bg) 14%,transparent) 78%,
     transparent 100%);
 }
 .edge-fade.bottom{
-  bottom:0;height:132px;
+  bottom:0;height:66px;
   background:linear-gradient(0deg,
     color-mix(in srgb,var(--bg) 97%,transparent) 0%,
     color-mix(in srgb,var(--bg) 95%,transparent) 32%,
@@ -534,8 +542,8 @@ footer b{color:var(--ink)}
     transparent 100%);
 }
 @media (max-width:720px){
-  .edge-fade.top{height:138px}
-  .edge-fade.bottom{height:108px}
+  .edge-fade.top{top:56px;height:46px}
+  .edge-fade.bottom{height:54px}
 }
 @media (prefers-reduced-motion:reduce){
   .edge-fade{transition:none}
@@ -2089,11 +2097,13 @@ function bind(){
 
   var toTop=$('toTop');
   var edgeTop=$('edgeTop'), edgeBot=$('edgeBot'), edgeTick=null;
+  var topbarEl=document.querySelector('.topbar');
   function syncEdges(){
     clearTimeout(edgeTick); edgeTick=null;
     var y=window.scrollY||document.documentElement.scrollTop||0;
     var max=(document.documentElement.scrollHeight||0)-window.innerHeight;
     toTop.classList.toggle('show',y>600);
+    if(topbarEl)topbarEl.classList.toggle('scrolled',y>8);
     if(edgeTop)edgeTop.classList.toggle('on',y>4);
     if(edgeBot)edgeBot.classList.toggle('on',max-y>4);
   }
