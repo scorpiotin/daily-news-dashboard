@@ -214,9 +214,11 @@ h1.display span+span{margin-top:.06em}
 }
 .dc-poem{margin-top:16px}
 .dc-poem p{
-  font-size:0.875rem;line-height:1.75;font-family:Georgia,"Songti SC","SimSun",serif;letter-spacing:.01em;
+  /* 与「今日简报」同一套字形逻辑：黑体极重、字距收紧、字号要大 */
+  font-family:var(--font-cn);font-size:1.125rem;font-weight:900;line-height:1.58;
+  letter-spacing:-.018em;text-wrap:balance;
   /* 固定两行高度：打字与抹去时卡片不跳动 */
-  min-height:3.5em;
+  min-height:3.16em;
 }
 .dc-poem p.typing::after{
   content:"";display:inline-block;width:1.5px;height:1em;margin-left:2px;
@@ -225,11 +227,12 @@ h1.display span+span{margin-top:.06em}
 }
 @keyframes dcCaret{0%,52%{opacity:.85}53%,100%{opacity:0}}
 .dc-poem cite{
-  display:block;margin-top:7px;font-size:0.7188rem;font-style:normal;
+  display:block;margin-top:8px;font-size:0.75rem;font-weight:600;font-style:normal;
+  letter-spacing:.012em;line-height:1.6;
   opacity:0;transform:translateY(-2px);
   transition:opacity .42s ease,transform .42s ease;
 }
-.dc-poem cite.in{opacity:.88;transform:none}
+.dc-poem cite.in{opacity:.9;transform:none}
 .dc-next{
   margin-top:14px;font-size:0.7188rem;opacity:.9;padding:4px 10px;border:1px solid rgba(255,255,255,.45);
   border-radius:999px;transition:.15s
@@ -506,6 +509,38 @@ footer b{color:var(--ink)}
 }
 #toTop.show{display:flex}
 #toTop svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+
+/* 上下边缘淡出：内容滑到视口边缘时融进背景，不留生硬截断 */
+.edge-fade{
+  position:fixed;left:0;right:0;pointer-events:none;z-index:29;
+  opacity:0;transition:opacity .42s ease;
+}
+.edge-fade.on{opacity:1}
+.edge-fade.top{
+  top:0;height:168px;
+  background:linear-gradient(180deg,
+    color-mix(in srgb,var(--bg) 97%,transparent) 0%,
+    color-mix(in srgb,var(--bg) 97%,transparent) 38%,
+    color-mix(in srgb,var(--bg) 68%,transparent) 62%,
+    color-mix(in srgb,var(--bg) 26%,transparent) 82%,
+    transparent 100%);
+}
+.edge-fade.bottom{
+  bottom:0;height:132px;
+  background:linear-gradient(0deg,
+    color-mix(in srgb,var(--bg) 97%,transparent) 0%,
+    color-mix(in srgb,var(--bg) 95%,transparent) 32%,
+    color-mix(in srgb,var(--bg) 62%,transparent) 64%,
+    transparent 100%);
+}
+@media (max-width:720px){
+  .edge-fade.top{height:138px}
+  .edge-fade.bottom{height:108px}
+}
+@media (prefers-reduced-motion:reduce){
+  .edge-fade{transition:none}
+}
+
 .toast{
   position:fixed;left:50%;bottom:32px;transform:translate(-50%,20px);background:var(--ink);color:var(--bg);
   padding:11px 20px;border-radius:12px;font-size:0.8125rem;opacity:0;pointer-events:none;transition:.22s;z-index:60
@@ -570,7 +605,8 @@ footer b{color:var(--ink)}
 footer{line-height:1.85}
 .tag,.kw,.chip,.mini-btn,.more-btn,.btn,.f-toggle{letter-spacing:.008em}
 .card-foot .src{letter-spacing:.004em}
-.dc-poem p{font-size:0.9rem;letter-spacing:.02em}
+.dc-poem p{font-size:1.125rem;letter-spacing:-.018em;font-weight:900}
+.dc-poem cite{letter-spacing:.012em}
 /* 顶栏更新时间：让它像一枚仪表读数，而不是普通文字 */
 .chip-time{letter-spacing:.02em}
 .chip-time b{letter-spacing:0}
@@ -784,6 +820,8 @@ footer{line-height:1.85}
     </section>
 
   </div>
+  <div class="edge-fade top" id="edgeTop" aria-hidden="true"></div>
+  <div class="edge-fade bottom" id="edgeBot" aria-hidden="true"></div>
 </main>
 
 <footer>
@@ -1751,6 +1789,18 @@ function renderChips(){
   $('chips').innerHTML=html;
 }
 
+/* 切换领域后把卡片拉回顶部：对齐到吸顶筛选栏下方 */
+function scrollFeedTop(){
+  var box=$('feedList'); if(!box)return;
+  var tb=document.querySelector('.topbar'), fl=$('filter');
+  var y=window.scrollY||document.documentElement.scrollTop||0;
+  var docTop=box.getBoundingClientRect().top+y;
+  var off=(tb?tb.offsetHeight:64)+(fl?fl.offsetHeight:0)+14;
+  var to=Math.max(0,Math.round(docTop-off));
+  if(Math.abs(to-y)<3)return;
+  window.scrollTo({top:to,behavior:reduce?'auto':'smooth'});
+}
+
 /* ---------- 视图切换 ---------- */
 function setView(v,scroll){
   S.view=v;
@@ -1949,6 +1999,7 @@ function bind(){
       S.feedSel=new Set([id]);
     }
     renderChips();renderFeed();syncURL();
+    scrollFeedTop();
   });
 
   $('dens').addEventListener('click',function(e){
@@ -2037,9 +2088,20 @@ function bind(){
   });
 
   var toTop=$('toTop');
+  var edgeTop=$('edgeTop'), edgeBot=$('edgeBot'), edgeTick=null;
+  function syncEdges(){
+    clearTimeout(edgeTick); edgeTick=null;
+    var y=window.scrollY||document.documentElement.scrollTop||0;
+    var max=(document.documentElement.scrollHeight||0)-window.innerHeight;
+    toTop.classList.toggle('show',y>600);
+    if(edgeTop)edgeTop.classList.toggle('on',y>4);
+    if(edgeBot)edgeBot.classList.toggle('on',max-y>4);
+  }
   window.addEventListener('scroll',function(){
-    toTop.classList.toggle('show',window.scrollY>600);
+    if(!edgeTick)edgeTick=setTimeout(syncEdges,16);
   },{passive:true});
+  window.addEventListener('resize',syncEdges);
+  syncEdges();
   toTop.addEventListener('click',function(){window.scrollTo({top:0,behavior:reduce?'auto':'smooth'})});
 
   var rzTid=null;
