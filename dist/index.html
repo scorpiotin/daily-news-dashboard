@@ -1655,7 +1655,7 @@ function douyinHtml(s){
   var span=Math.max(1,maxHeat-minHeat);
   var top=s.items.slice(0,3).map(function(it,i){
     return '<article class="dy-card g'+(i+1)+'">'+
-      '<span class="rk" aria-hidden="true">'+(i+1)+'</span>'+
+      '<span class="rk" aria-hidden="true">'+esc(it.rank||(i+1))+'</span>'+
       '<div class="nm"><a href="'+esc(it.url)+'" target="_blank" rel="noopener noreferrer">'+esc(it.title)+'</a></div>'+
       '<div class="mt">'+dyBadge(it.heatLabel)+'<span>'+esc(it.heatText)+' 热度</span></div>'+
     '</article>';

@@ -85,9 +85,10 @@ MAX_BY_DOMAIN["douyin"] = 20          # 榜单性质，取前 20 条
 
 # 当天全量留档上限：远高于单次抓取上限（10 / 20），
 # 保证一天内三次抓取（含手动触发）的条目都留在当天文件里，不被新批次挤掉。
-# 60 约等于 6 个批次，正常一天用不到；抖音榜单量大，给 100。
+# 60 约等于 6 个批次，正常一天用不到。
+# 抖音不参与留档（见 SPECIAL_DOMAINS），这里保留占位但不会生效。
 ARCHIVE_CAP_BY_DOMAIN = {d: 60 for d in DOMAIN_IDS}
-ARCHIVE_CAP_BY_DOMAIN["douyin"] = 100
+ARCHIVE_CAP_BY_DOMAIN["douyin"] = 20
 
 SPECIAL_DOMAINS = {"douyin"}          # 不走关键词分类，由专用抓取器产出
 
@@ -903,18 +904,32 @@ def finalize(items: list[dict], now: datetime) -> list[dict]:
 
 
 def _sort_key(it: dict):
+    """领域内排序：级别优先（P0 → P2），同级按发布时间倒序（最新在前）。
+
+    注：不再用印证数做二级键。同一级别下若按印证数排，时间会来回跳跃，
+    读起来像被打乱；改成纯时间倒序后，每个级别内部都是一条清晰的时间线。
+    """
     try:
         ts = -datetime.fromisoformat(it["time"]).timestamp()
     except Exception:
         ts = 0.0
-    return (LEVEL_ORDER.get(it.get("level", "P2"), 2), -it.get("verifiedCount", 1), ts)
+    return (LEVEL_ORDER.get(it.get("level", "P2"), 2), ts)
+
+
+def _rank_key(it: dict):
+    """榜单类排序：严格按平台实时排名，不参与级别/时间排序。"""
+    try:
+        return (int(it.get("rank") or 999), -float(it.get("heat") or 0))
+    except Exception:
+        return (999, 0.0)
 
 
 def build_day(items: list[dict], date_str: str) -> dict:
     sections = []
     for did, dname, ddesc in DOMAINS:
         pool = [i for i in items if i["domain"] == did]
-        pool.sort(key=_sort_key)
+        # 榜单类按平台实时排名，其余按 级别 → 时间
+        pool.sort(key=_rank_key if did in SPECIAL_DOMAINS else _sort_key)
         chosen = pool[: MAX_BY_DOMAIN.get(did, MAX_PER_DOMAIN)]
         sections.append({
             "id": did,
@@ -966,6 +981,14 @@ def merge_previous_items(sections: list[dict], day_path: Path) -> int:
 
     added = 0
     for s in sections:
+        # 榜单类（抖音热搜）每次只用当次抓取的实时前 20，不补历史、不累积。
+        # 榜单的价值在「此刻的热度排名」，旧排名留档反而会污染当日榜单。
+        if s["id"] in SPECIAL_DOMAINS:
+            s["items"] = s["items"][: MAX_BY_DOMAIN.get(s["id"], 20)]
+            s["items"].sort(key=_rank_key)
+            s["empty"] = len(s["items"]) == 0
+            continue
+
         cap = ARCHIVE_CAP_BY_DOMAIN.get(s["id"], 60)
         seen = {i["url"] for i in s["items"]}
         for prev in old_map.get(s["id"], []):
@@ -977,7 +1000,7 @@ def merge_previous_items(sections: list[dict], day_path: Path) -> int:
             s["items"].append(prev)
             seen.add(prev["url"])
             added += 1
-        # 与单次构建保持同一排序口径：级别 → 印证数 → 时间倒序
+        # 与单次构建保持同一排序口径：级别 → 时间倒序
         s["items"].sort(key=_sort_key)
         s["empty"] = len(s["items"]) == 0
 
