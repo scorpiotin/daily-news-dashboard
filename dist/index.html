@@ -77,6 +77,9 @@ h1,h2,h3,p,blockquote,figure{margin:0}
 @keyframes bgRipple{
   to{transform:translate(-50%,-50%) scale(11);opacity:0}
 }
+
+/* 星尘粒子层：覆盖全屏但不接收事件，始终浮在内容之上 */
+#fxCanvas{position:fixed;left:0;top:0;pointer-events:none;z-index:2}
 ul,ol{margin:0;padding:0;list-style:none}
 a{color:inherit;text-decoration:none}
 button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
@@ -1830,12 +1833,12 @@ function bind(){
   });
 }
 
-/* ---------- 指针互动：背景柔光 / 空白处涟漪 / 磁吸按钮 ---------- */
+/* ---------- 指针互动：背景柔光 / 空白处涟漪 / 星尘粒子 ---------- */
 function initPointerFX(){
   if(reduce)return;
   var fine=false;
   try{fine=window.matchMedia('(hover:hover) and (pointer:fine)').matches}catch(e){}
-  if(!fine)return;
+  if(!fine||window.innerWidth<768)return;
 
   var root=document.documentElement;
   var tx=window.innerWidth*0.5, ty=window.innerHeight*0.34;
@@ -1848,30 +1851,10 @@ function initPointerFX(){
     else{raf=null}
   }
 
-  var MAX=4, R=54;
-  var els=[].slice.call(document.querySelectorAll('.topbar .iconbtn,.topbar .tab'));
-  var mraf=null;
-  function magnet(){
-    mraf=null;
-    for(var i=0;i<els.length;i++){
-      var el=els[i], b=el.getBoundingClientRect();
-      var dx=tx-(b.left+b.width/2), dy=ty-(b.top+b.height/2);
-      var d=Math.sqrt(dx*dx+dy*dy);
-      if(d>R||d<0.6){if(el.style.transform)el.style.transform='';continue}
-      var mag=MAX*(1-d/R)*(1-d/R);
-      el.style.transform='translate('+(dx/d*mag).toFixed(2)+'px,'+(dy/d*mag).toFixed(2)+'px)';
-    }
-  }
-
   document.addEventListener('mousemove',function(e){
     tx=e.clientX; ty=e.clientY;
     if(!raf)raf=requestAnimationFrame(step);
-    if(els.length&&!mraf)mraf=requestAnimationFrame(magnet);
   },{passive:true});
-
-  document.addEventListener('mouseleave',function(){
-    els.forEach(function(el){el.style.transform=''});
-  });
 
   // 只在背景空白处生成涟漪，避免与链接、卡片等交互冲突
   var SKIP='a,button,input,select,textarea,label,.card,.nav-card,.sheet,.sheet-mask,.filter,.topbar,.tbl,.daycard,.ticker,.toast,.dy-top,.sector';
@@ -1885,6 +1868,92 @@ function initPointerFX(){
     document.body.appendChild(r);
     r.addEventListener('animationend',function(){r.remove()});
   },{passive:true});
+
+  initDust();
+}
+
+/* 星尘：在光标外围生成微粒，被吸向光标聚拢；鼠标甩得快时掉队消散 */
+function initDust(){
+  var cv=document.createElement('canvas');
+  cv.id='fxCanvas';
+  cv.setAttribute('aria-hidden','true');
+  document.body.appendChild(cv);
+  var ctx=cv.getContext('2d');
+  var dpr=Math.min(window.devicePixelRatio||1,2);
+  var W=1,H=1;
+  function resize(){
+    W=window.innerWidth; H=window.innerHeight;
+    cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr);
+    cv.style.width=W+'px'; cv.style.height=H+'px';
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+  resize();
+  window.addEventListener('resize',resize,{passive:true});
+
+  var COLORS=['232,56,111','255,122,77','138,92,246'];
+  var MAX=60;
+  var ps=[];
+  var MX=-9999, MY=-9999, lx=-9999, ly=-9999, vel=0, live=false, started=false;
+
+  document.addEventListener('mousemove',function(e){
+    MX=e.clientX; MY=e.clientY; live=true;
+    if(!started){started=true; lx=MX; ly=MY; requestAnimationFrame(frame)}
+  },{passive:true});
+  document.addEventListener('mouseleave',function(){live=false});
+
+  function spawn(n,dx,dy,v){
+    // 沿运动反方向偏后生成：快速移动时自然形成拖尾，慢速时落在光标周围被吸住
+    var bx=0, by=0;
+    if(v>0.6){bx=-dx/v; by=-dy/v}
+    for(var i=0;i<n;i++){
+      var back=6+Math.random()*44;
+      var side=(Math.random()-.5)*56;
+      ps.push({
+        x:MX+bx*back-by*side,
+        y:MY+by*back+bx*side,
+        vx:(Math.random()-.5)*2.6,
+        vy:(Math.random()-.5)*2.6,
+        life:1,
+        size:1.7+Math.random()*2.2,
+        c:COLORS[(Math.random()*COLORS.length)|0]
+      });
+    }
+  }
+
+  function frame(){
+    ctx.clearRect(0,0,W,H);
+    var dxm=MX-lx, dym=MY-ly;
+    vel=Math.sqrt(dxm*dxm+dym*dym);
+    lx=MX; ly=MY;
+
+    if(live&&vel>1.2&&ps.length<MAX){
+      spawn(Math.min(4,Math.max(1,Math.round(vel/8))),dxm,dym,vel);
+    }
+
+    for(var i=ps.length-1;i>=0;i--){
+      var p=ps[i];
+      var dx=MX-p.x, dy=MY-p.y;
+      var d=Math.sqrt(dx*dx+dy*dy)||1;
+      if(d>26){
+        // 外圈：被吸向光标
+        var g=78/(d+26);
+        p.vx+=dx/d*g; p.vy+=dy/d*g;
+      }else{
+        // 内圈：转为切向绕行，避免坍缩成一个点
+        p.vx+=-dy/d*0.30; p.vy+=dx/d*0.30;
+      }
+      p.vx*=0.878; p.vy*=0.878;
+      p.x+=p.vx; p.y+=p.vy;
+      // 速度越快，生命流失越快 —— 快速甩动时粒子自然掉队消散
+      p.life-=0.0058+Math.min(0.026,vel*0.0007);
+      if(p.life<=0){ps.splice(i,1);continue}
+      ctx.beginPath();
+      ctx.fillStyle='rgba('+p.c+','+(0.28+p.life*0.56).toFixed(3)+')';
+      ctx.arc(p.x,p.y,p.size*p.life+0.3,0,6.2832);
+      ctx.fill();
+    }
+    requestAnimationFrame(frame);
+  }
 }
 
 /* ---------- 启动 ---------- */
