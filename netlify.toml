@@ -1,0 +1,4 @@
+[build]
+  # 仓库根目录构建；站点产物在 dist/
+  publish = "dist"
+  command = ""

@@ -1,0 +1,13 @@
+# 运行期不需要、或属于本地产物的目录与文件
+.workbuddy/
+.shots/
+design-refs/
+design-refs-v2/
+__pycache__/
+*.pyc
+*.zip
+*.genie
+.DS_Store
+Thumbs.db
+
+# 注意：dist/ 是提交的（Netlify / Cloudflare Pages 可直接发布，无需构建）

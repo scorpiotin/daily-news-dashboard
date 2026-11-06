@@ -1,0 +1,1 @@
+window.__INDEX__ = [{"date":"2026-11-06","count":142,"updatedAt":"2026-11-06T10:02:37+08:00","levelCount":{"P0":2,"P1":33,"P2":107},"emptyDomains":[]},{"date":"2026-11-05","count":136,"updatedAt":"2026-11-05T16:44:29+08:00","levelCount":{"P0":5,"P1":32,"P2":99},"emptyDomains":["realestate","law"]}];

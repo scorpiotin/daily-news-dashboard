@@ -1,0 +1,13 @@
+# 统一使用 LF，避免 Windows 提交的 CRLF 影响 Actions / Shell
+* text=auto eol=lf
+
+*.py   text eol=lf
+*.js   text eol=lf
+*.html text eol=lf
+*.yml  text eol=lf
+*.md   text eol=lf
+*.toml text eol=lf
+
+*.png  binary
+*.jpg  binary
+*.zip  binary

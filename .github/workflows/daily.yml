@@ -1,0 +1,68 @@
+name: 每日抓取并发布
+
+# 每天北京时间 07:30（UTC 23:30）自动抓取、归档并发布到 GitHub Pages
+on:
+  schedule:
+    - cron: "30 23 * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "index.html"
+      - "fetch_news.py"
+      - "build_site.py"
+      - "data/**"
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # 抓取失败不阻断发布：继续用已有归档构建，页面仍可访问
+      - name: 抓取最新资讯
+        run: python fetch_news.py || echo "::warning::抓取失败，使用已有归档继续发布"
+
+      - name: 构建静态站点
+        run: python build_site.py
+
+      - name: 归档数据并回写仓库
+        run: |
+          git config user.name  "news-dashboard-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add data
+          if git diff --staged --quiet; then
+            echo "无新数据"
+          else
+            git commit -m "chore(data): $(date -u +%Y-%m-%d) 归档 [skip ci]"
+            git push
+          fi
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
