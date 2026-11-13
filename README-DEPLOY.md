@@ -6,14 +6,16 @@
 
 ## 一、访问方式
 
-| 方式    | 地址                                                                           | 说明                         |
-| ----- | ---------------------------------------------------------------------------- | -------------------------- |
-| 已部署线上 | `https://daily-industry-news-62462.app.workbuddy.host/?sharecode=3TNSQNA7VK` | 立即可用，三端自适应，链接可直接转发         |
-| 本地预览  | `python -m http.server 8080 --directory dist`                                | 打开 `http://localhost:8080` |
-| 自建托管  | GitHub Pages / Netlify / Cloudflare Pages                                    | 见第三节，可获得无 sharecode 的公开域名  |
+| 方式 | 地址 | 说明 |
+| --- | --- | --- |
+| **主站（Netlify，国内优先）** | `https://startling-bonbon-a2d0f6.netlify.app/` | 免参数、免登录，国内直连 0.3–0.9 秒，每次推送自动重建 |
+| 备用（GitHub Pages） | `https://scorpiotin.github.io/daily-news-dashboard/` | 同源同数据，`*.github.io` 在国内时通时断，仅作兜底 |
+| 本地预览 | `python -m http.server 8080 --directory dist` | 打开 `http://localhost:8080` |
+| WorkBuddy 分享链接 | `https://daily-industry-news-62462.app.workbuddy.host/?sharecode=3TNSQNA7VK` | 静态快照，**不会自动更新**，仅应急 |
 
-> 分享链接的静态资源同样需要 `sharecode` 参数，页面已自动把该参数透传到 `data/*.js` 请求上，因此正常访问不需要任何额外操作。  
-> 若要一个**完全公开、无参数**的域名，请用第三节任一方案部署。
+> 两个线上地址内容完全一致，都由同一次 `git push` 触发构建，数据源为仓库内 `data/`。
+> 日常请用 Netlify 那个地址；`*.github.io` 的解析在国内不稳定，打不开不代表站点故障。
+> 分享链接的静态资源需要 `sharecode` 参数，页面已自动把该参数透传到 `data/*.js` 请求上，正常访问无需额外操作。
 
 
 
@@ -87,16 +89,30 @@ git push -u origin main
 > 公开仓库的定时任务完全免费。私有仓库会消耗 Actions 分钟数（本流程每次约 1 分钟），
 > 且 **私有仓库的 Pages 需要付费账户**，建议用公开仓库。
 
-### 方案 B：Netlify
+### 方案 B：Netlify（当前生产环境）
 
-```bash
-npm i -g netlify-cli
-netlify login
-netlify deploy --prod --dir=dist
+**已采用，主站即此方案。** 通过 Git 集成自动部署：
+
+Add new site → Import an existing project → 授权 GitHub → 选 `daily-news-dashboard`。
+
+构建设置由根目录 `netlify.toml` 自动读取，无需手填：
+
+| 项目 | 值 |
+| --- | --- |
+| Branch to deploy | `main` |
+| Build command | `python3 build_site.py` |
+| Publish directory | `dist` |
+| 环境变量 | `PYTHON_VERSION = 3.12` |
+
+三个易踩的坑：
+
+1. **不要用 `[skip ci]` 作为归档提交信息。** Netlify 认这个标记会跳过构建，镜像站就不会更新。仓库工作流已改为 `[skip actions]`——只阻止 Actions 递归触发，Netlify 照常构建。
+2. **站点必须是 Public。** 新站点有时默认开着 Edge Access（访问限制），表现为任何路径都返回 `401` 并跳转 `app.netlify.com/edge-access`。在 Site configuration → Access & security 里把访问模式改回 Public。
+3. **必须真的跑构建。** `dist/` 虽然已提交，但 `netlify.toml` 指定了构建命令，Netlify 会重新执行 `build_site.py` 而不是直接发布仓库里的旧 `dist/`，这样定时任务提交的新数据才会进入产物。
+
 ```
-
-或用 Git 集成：New site from Git → 选仓库 → **Build command 留空**、**Publish directory 填 `dist`**。  
-根目录的 `netlify.toml` 已写好这两项，通常无需手动填。
+npm i -g netlify-cli && netlify login && netlify deploy --prod --dir=dist   # 备用：手动发布
+```
 
 ### 方案 C：Cloudflare Pages
 
