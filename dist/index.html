@@ -673,6 +673,10 @@ footer b{color:var(--ink)}
   box-shadow:0 6px 20px -6px rgba(34,16,70,.4);z-index:45
 }
 #toTop.show{display:flex}
+/* Netlify 免费版会在右下角注入一枚 197×64 的 "Powered by Netlify" 徽标 iframe，
+   z-index 拉到最大值，正好盖住这颗按钮。检测到徽标就把它抬到徽标上方；
+   GitHub Pages 没有徽标，按钮仍在原位，不受影响 */
+html.has-nl-badge #toTop{bottom:76px}
 #toTop svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
 
 /* 底边淡出：内容滑到底部时融进背景，不留生硬截断 */
@@ -2267,6 +2271,18 @@ function bind(){
   var toTop=$('toTop');
   var edgeBot=$('edgeBot'), edgeTick=null;
   var topbarEl=document.querySelector('.topbar');
+  /* Netlify 免费版会在页面右下角注入 "Powered by Netlify" 徽标（fixed iframe，
+     z-index 拉满），正好压住返回顶部按钮。徽标是异步注入的，所以用观察器盯着；
+     没有徽标的部署（GitHub Pages）不会加这个类 */
+  (function watchNetlifyBadge(){
+    var root=document.documentElement;
+    function check(){
+      if(document.getElementById('nl-badge-frame'))root.classList.add('has-nl-badge');
+    }
+    check();
+    if(!window.MutationObserver)return;
+    new MutationObserver(check).observe(document.body,{childList:true});
+  })();
   function closeRailSearch(){
     var fs=document.querySelector('.filter .search');
     if(fs)fs.classList.remove('open');
