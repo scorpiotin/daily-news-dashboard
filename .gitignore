@@ -13,3 +13,6 @@ Thumbs.db
 # 注意：dist/ 是提交的（Netlify / Cloudflare Pages 可直接发布，无需构建）
 .chrome-*/
 _t_*
+# 本地调试脚本与截图（headless 探针、裁图），一律不入库
+_*.js
+_shots/
