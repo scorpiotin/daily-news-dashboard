@@ -50,7 +50,9 @@ jobs:
           if git diff --staged --quiet; then
             echo "无新数据"
           else
-            git commit -m "chore(data): $(date -u +%Y-%m-%d) 归档 [skip ci]"
+            # 用 [skip actions] 而不是 [skip ci]：前者只让 GitHub Actions 不递归触发，
+            # 后者会被 Netlify 一并识别为跳过部署，导致镜像站永远不更新
+            git commit -m "chore(data): $(date -u +%Y-%m-%d) 归档 [skip actions]"
             git push
           fi
 

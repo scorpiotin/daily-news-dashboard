@@ -1,4 +1,8 @@
 [build]
-  # 仓库根目录构建；站点产物在 dist/
+  # 仓库根目录构建：Netlify 拉取代码后先跑构建脚本生成 dist/，再发布该目录
+  # 构建脚本只依赖 Python 标准库（os / shutil / sys），无需安装任何包
+  command = "python3 build_site.py"
   publish = "dist"
-  command = ""
+
+[build.environment]
+  PYTHON_VERSION = "3.12"
